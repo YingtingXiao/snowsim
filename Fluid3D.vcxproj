@@ -56,6 +56,7 @@
       <GenerateMapFile>true</GenerateMapFile>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
+      <AdditionalDependencies>opengl32.lib;glu32.lib;glut32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -70,14 +71,15 @@
     <Link>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
+      <AdditionalDependencies>opengl32.lib;glu32.lib;glut32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="fluidsim.cpp" />
     <ClCompile Include="levelset_util.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="viscosity3d.cpp" />
-    <ClCompile Include="volume_fractions.cpp" />
+    <ClCompile Include="viewpls3D\gluvi.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="array1.h" />
@@ -85,17 +87,13 @@
     <ClInclude Include="array2_utils.h" />
     <ClInclude Include="array3_utils.h" />
     <ClInclude Include="fluidsim.h" />
-    <ClInclude Include="gluvi.h" />
-    <ClInclude Include="hashtable.h" />
     <ClInclude Include="levelset_util.h" />
-    <ClInclude Include="openglutils.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="vec.h" />
-    <ClInclude Include="viscosity3d.h" />
-    <ClInclude Include="volume_fractions.h" />
     <ClInclude Include="pcgsolver\blas_wrapper.h" />
     <ClInclude Include="pcgsolver\pcg_solver.h" />
     <ClInclude Include="pcgsolver\sparse_matrix.h" />
+    <ClInclude Include="viewpls3D\gluvi.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

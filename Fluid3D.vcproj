@@ -173,14 +173,6 @@
 				RelativePath=".\main.cpp"
 				>
 			</File>
-			<File
-				RelativePath=".\viscosity3d.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\volume_fractions.cpp"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -229,14 +221,6 @@
 			</File>
 			<File
 				RelativePath=".\vec.h"
-				>
-			</File>
-			<File
-				RelativePath=".\viscosity3d.h"
-				>
-			</File>
-			<File
-				RelativePath=".\volume_fractions.h"
 				>
 			</File>
 			<Filter

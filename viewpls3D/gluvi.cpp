@@ -57,20 +57,20 @@ drag(int x, int y)
       case INACTIVE:
          return; // nothing to do
       case ROTATE:
-         heading+=0.007f*(oldmousex-x);
+         heading+=0.007*(oldmousex-x);
          if(heading<-M_PI) heading+=2*M_PI;
          else if(heading>M_PI) heading-=2*M_PI;
-         pitch+=0.007f*(oldmousey-y);
-         if(pitch<-0.5f*M_PI) pitch=-0.5f*M_PI;
-         else if(pitch>0.5f*M_PI) pitch=0.5f*M_PI;
+         pitch+=0.007*(oldmousey-y);
+         if(pitch<-0.5*M_PI) pitch=-0.5*M_PI;
+         else if(pitch>0.5*M_PI) pitch=0.5*M_PI;
          break;
       case TRUCK:
-         target[0]+=(0.002f*dist)*cos(heading)*(oldmousex-x);
-         target[1]-=(0.002f*dist)*(oldmousey-y);
-         target[2]-=(0.002f*dist)*sin(heading)*(oldmousex-x);
+         target[0]+=(0.002*dist)*cos(heading)*(oldmousex-x);
+         target[1]-=(0.002*dist)*(oldmousey-y);
+         target[2]-=(0.002*dist)*sin(heading)*(oldmousex-x);
          break;
       case DOLLY:
-         dist*=pow(1.01f, oldmousey-y + x-oldmousex);
+         dist*=pow(1.01, y-oldmousey + oldmousex-x);
          break;
    }
    oldmousex=x;
@@ -99,8 +99,8 @@ transform_mouse(int x, int y, float ray_origin[3], float ray_direction[3])
    ray_origin[1]=target[1]-dist*sp;
    ray_origin[2]=target[2]+dist*ch*cp;
 
-   float scale=0.5f*tan(fovy)/winheight;
-   float camx=(x-0.5f*winwidth)*scale, camy=(0.5f*winheight-y)*scale, camz=-1.0; // in camera coordinates, this is ray_direction (but not normalized)
+   float scale=0.5*tan(fovy)/winheight;
+   float camx=(x-0.5*winwidth)*scale, camy=(0.5*winheight-y)*scale, camz=-1.0; // in camera coordinates, this is ray_direction (but not normalized)
    // now need to rotate into world space from camera space
    float px=camx, py=camy*cp-camz*sp, pz=camy*sp+camz*cp;
    ray_direction[0]=px*ch+pz*sh;
@@ -211,20 +211,20 @@ drag(int x, int y)
       case INACTIVE:
          return; // nothing to do
       case ROTATE:
-         heading+=0.007f*(oldmousex-x);
+         heading+=0.007*(oldmousex-x);
          if(heading<-M_PI) heading+=2*M_PI;
          else if(heading>M_PI) heading-=2*M_PI;
-         pitch+=0.007f*(oldmousey-y);
-         if(pitch<-0.5f*M_PI) pitch=-0.5f*M_PI;
-         else if(pitch>0.5f*M_PI) pitch=0.5f*M_PI;
+         pitch+=0.007*(oldmousey-y);
+         if(pitch<-0.5*M_PI) pitch=-0.5*M_PI;
+         else if(pitch>0.5*M_PI) pitch=0.5*M_PI;
          break;
       case TRUCK:
-         target[0]+=(0.002f*dist)*cos(heading)*(oldmousex-x);
-         target[1]-=(0.002f*dist)*(oldmousey-y);
-         target[2]-=(0.002f*dist)*sin(heading)*(oldmousex-x);
+         target[0]+=(0.002*dist)*cos(heading)*(oldmousex-x);
+         target[1]-=(0.002*dist)*(oldmousey-y);
+         target[2]-=(0.002*dist)*sin(heading)*(oldmousex-x);
          break;
       case DOLLY:
-         dist*=pow(1.01f, oldmousey-y + x-oldmousex);
+         dist*=pow(1.01, y-oldmousey + oldmousex-x);
          break;
    }
    oldmousex=x;
@@ -266,7 +266,7 @@ gl_transform(void)
 
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
-   float halfheight=0.5f*height_factor*dist, halfwidth=halfheight*winwidth/(float)winheight;
+   float halfheight=0.5*height_factor*dist, halfwidth=halfheight*winwidth/(float)winheight;
    glOrtho(-halfwidth, halfwidth, -halfheight, halfheight, near_clip_factor*dist, far_clip_factor*dist);
 
    glMatrixMode(GL_MODELVIEW);
@@ -315,8 +315,8 @@ click(int button, int state, int x, int y)
          case PAN:
             if(!moved_since_mouse_down){
                // make mouse click the centre of the window
-               left+=r*(x-0.5f*winwidth);
-               bottom+=r*(0.5f*winheight-y);
+               left+=r*(x-0.5*winwidth);
+               bottom+=r*(0.5*winheight-y);
                glutPostRedisplay();
             }
             break;
@@ -330,12 +330,12 @@ click(int button, int state, int x, int y)
                   desired_height=winheight*desired_width/winwidth;
                else
                   desired_width=winwidth*desired_height/winheight;
-               left+=0.5f*(x+clickx)*height/winheight-0.5f*desired_width;
-               bottom+=(winheight-0.5f*(y+clicky))*height/winheight-0.5f*desired_height;
+               left+=0.5*(x+clickx)*height/winheight-0.5*desired_width;
+               bottom+=(winheight-0.5*(y+clicky))*height/winheight-0.5*desired_height;
                height=desired_height;
             }else{
                // zoom in by some constant factor on the mouse click
-               float factor=0.70710678118654752440084f;
+               float factor=0.70710678118654752440084;
                left+=(1-factor)*height*(x/(float)winheight);
                bottom+=(1-factor)*height*(1-y/(float)winheight);
                height*=factor;
@@ -345,9 +345,9 @@ click(int button, int state, int x, int y)
          case ZOOM_OUT:
             // zoom out by some constant factor
             {
-               float factor=1.41421356237309504880168f;
-               left-=0.5f*(factor-1)*winwidth*height/winheight;
-               bottom-=0.5f*(factor-1)*height;
+               float factor=1.41421356237309504880168;
+               left-=0.5*(factor-1)*winwidth*height/winheight;
+               bottom-=0.5*(factor-1)*height;
                height*=factor;
             }
             glutPostRedisplay();
@@ -423,8 +423,8 @@ export_rib(ostream &output)
    output<<"Scale 1 1 -1"<<endl;        // so we need to correct for that here
    // scale so that smaller dimension gets scaled to size 2
    float scalefactor;
-   if(winwidth>winheight) scalefactor=2.0f/height;
-   else scalefactor=2.0f/(winwidth*height/winheight);
+   if(winwidth>winheight) scalefactor=2.0/height;
+   else scalefactor=2.0/(winwidth*height/winheight);
    output<<"Scale "<<scalefactor<<" "<<scalefactor<<" 1"<<endl;
    // translate so centre of view gets mapped to (0,0,1000)
    output<<"Translate "<<-(left+0.5*winwidth*height/winheight)<<" "<<-(bottom+0.5*height)<< " 1000"<<endl;
@@ -459,7 +459,7 @@ display(int x, int y)
    dispy=y;
    width=glutBitmapLength(GLUT_BITMAP_HELVETICA_12, (const unsigned char*)text)+1;
    height=15;
-   glColor3f(0.3f, 0.3f, 0.3f);
+   glColor3f(0.3, 0.3, 0.3);
    glRasterPos2i(x, y-height+2);
    for(int i=0; text[i]!=0; ++i)
       glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, text[i]);
@@ -486,24 +486,24 @@ display(int x, int y)
    else width=textwidth+24;
    height=17;
    if(status==UNINVOLVED){
-      glColor3f(0.7f, 0.7f, 0.7f);
+      glColor3f(0.7, 0.7, 0.7);
       glBegin(GL_QUADS);
       glVertex2i(x+1, y-1);
       glVertex2i(x+width, y-1);
       glVertex2i(x+width, y-height+1);
       glVertex2i(x+1, y-height+1);
       glEnd();
-      glColor3f(0.3f, 0.3f, 0.3f);
+      glColor3f(0.3, 0.3, 0.3);
       glLineWidth(1);
       glBegin(GL_LINE_STRIP);
       glVertex2i(x, y-2);
       glVertex2i(x, y-height);
       glVertex2i(x+width-1, y-height);
       glEnd();
-      glColor3f(0.3f, 0.3f, 0.3f);
+      glColor3f(0.3, 0.3, 0.3);
    }else{
-      if(status==SELECTED) glColor3f(0.8f, 0.8f, 0.8f);
-      else                 glColor3f(1.0f, 1.0f, 1.0f);
+      if(status==SELECTED) glColor3f(0.8, 0.8, 0.8);
+      else                 glColor3f(1, 1, 1);
       glBegin(GL_QUADS);
       glVertex2i(x, y-1);
       glVertex2i(x+width, y-1);
@@ -563,7 +563,7 @@ display(int x, int y)
    if(width<justify) width=justify;
    width+=11+6+length+1;
    height=15;
-   glColor3f(0.3f, 0.3f, 0.3f);
+   glColor3f(0.3, 0.3, 0.3);
    glRasterPos2i(x, y-height+2);
    for(int i=0; text[i]!=0; ++i)
       glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, text[i]);
@@ -575,7 +575,7 @@ display(int x, int y)
    scrollxmax=x+width;
    scrollymin=y-height+1;
    scrollymax=y-2;
-   glColor3f(0.3f, 0.3f, 0.3f);
+   glColor3f(0.3, 0.3, 0.3);
    glLineWidth(1);
    glBegin(GL_LINE_STRIP);
    glVertex2i(scrollxmin, scrollymax-1);
@@ -583,7 +583,7 @@ display(int x, int y)
    glVertex2i(scrollxmax-1, scrollymin);
    glVertex2i(scrollxmax-1, scrollymax-1);
    glEnd();
-   glColor3f(0.7f, 0.7f, 0.7f);
+   glColor3f(0.7, 0.7, 0.7);
    glBegin(GL_LINE_STRIP);
    glVertex2i(scrollxmin+1, scrollymax);
    glVertex2i(scrollxmin+1, scrollymin+1);
@@ -591,13 +591,13 @@ display(int x, int y)
    glVertex2i(scrollxmax, scrollymax);
    glEnd();
    if(status==UNINVOLVED){
-      glColor3f(0.3f, 0.3f, 0.3f);
+      glColor3f(0.3, 0.3, 0.3);
       glBegin(GL_LINE_STRIP);
       glVertex2i(scrollxmin+position+2, scrollymax-2);
       glVertex2i(scrollxmin+position+2, scrollymin+2);
       glVertex2i(scrollxmin+position+10, scrollymin+2);
       glEnd();
-      glColor3f(0.7f, 0.7f, 0.7f);
+      glColor3f(0.7, 0.7, 0.7);
       glBegin(GL_QUADS);
       glVertex2i(scrollxmin+position+3, scrollymin+3);
       glVertex2i(scrollxmin+position+11, scrollymin+3);
@@ -893,23 +893,23 @@ void set_generic_lights(void)
 {
    glEnable(GL_LIGHTING);
    {
-      GLfloat ambient[4] = {.3f, .3f, .3f, 1};
+      GLfloat ambient[4] = {.3, .3, .3, 1};
       glLightModelfv (GL_LIGHT_MODEL_AMBIENT,ambient);
    }
    {
-      GLfloat color[4] = {.8f, .8f, .8f, 1};
+      GLfloat color[4] = {.8, .8, .8, 1};
       glLightfv (GL_LIGHT0, GL_DIFFUSE, color);
       glLightfv (GL_LIGHT0, GL_SPECULAR, color);
       glEnable (GL_LIGHT0);
    }
    {
-      GLfloat color[4] = {.4f, .4f, .4f, 1};
+      GLfloat color[4] = {.4, .4, .4, 1};
       glLightfv (GL_LIGHT1, GL_DIFFUSE, color);
       glLightfv (GL_LIGHT1, GL_SPECULAR, color);
       glEnable (GL_LIGHT1);
    }
    {
-      GLfloat color[4] = {.2f, .2f, .2f, 1};
+      GLfloat color[4] = {.2, .2, .2, 1};
       glLightfv (GL_LIGHT2, GL_DIFFUSE, color);
       glLightfv (GL_LIGHT2, GL_SPECULAR, color);
       glEnable (GL_LIGHT2);
@@ -919,9 +919,9 @@ void set_generic_lights(void)
 void set_generic_material(float r, float g, float b, GLenum face)
 {
    GLfloat ambient[4], diffuse[4], specular[4];
-   ambient[0]=0.1f*r+0.03f; ambient[1]=0.1f*g+0.03f; ambient[2]=0.1f*b+0.03f; ambient[3]=1;
-   diffuse[0]=0.7f*r;      diffuse[1]=0.7f*g;      diffuse[2]=0.7f*b;      diffuse[3]=1;
-   specular[0]=0.1f*r+0.1f; specular[1]=0.1f*g+0.1f; specular[2]=0.1f*b+0.1f; specular[3]=1;
+   ambient[0]=0.1*r+0.03; ambient[1]=0.1*g+0.03; ambient[2]=0.1*b+0.03; ambient[3]=1;
+   diffuse[0]=0.7*r;      diffuse[1]=0.7*g;      diffuse[2]=0.7*b;      diffuse[3]=1;
+   specular[0]=0.1*r+0.1; specular[1]=0.1*g+0.1; specular[2]=0.1*b+0.1; specular[3]=1;
    glMaterialfv(face, GL_AMBIENT, ambient);
    glMaterialfv(face, GL_DIFFUSE, diffuse);
    glMaterialfv(face, GL_SPECULAR, specular);
@@ -931,8 +931,8 @@ void set_generic_material(float r, float g, float b, GLenum face)
 void set_matte_material(float r, float g, float b, GLenum face)
 {
    GLfloat ambient[4], diffuse[4], specular[4];
-   ambient[0]=0.1f*r+0.03f; ambient[1]=0.1f*g+0.03f; ambient[2]=0.1f*b+0.03f; ambient[3]=1;
-   diffuse[0]=0.9f*r;      diffuse[1]=0.9f*g;      diffuse[2]=0.9f*b;      diffuse[3]=1;
+   ambient[0]=0.1*r+0.03; ambient[1]=0.1*g+0.03; ambient[2]=0.1*b+0.03; ambient[3]=1;
+   diffuse[0]=0.9*r;      diffuse[1]=0.9*g;      diffuse[2]=0.9*b;      diffuse[3]=1;
    specular[0]=0;         specular[1]=0;         specular[2]=0;         specular[3]=1;
    glMaterialfv(face, GL_AMBIENT, ambient);
    glMaterialfv(face, GL_DIFFUSE, diffuse);
@@ -967,7 +967,7 @@ void draw_3d_arrow(const float base[3], const float point[3], float arrow_head_l
     v = v/mag(v);
 
     if (!arrow_head_length)
-        arrow_head_length = 0.1f * (float)len;
+        arrow_head_length = 0.1 * len;
     
     // arrow head points
     //@@@@@@@ POSSIBILITY: CREATE FOUR ARROW HEAD SEGMENTS INSTEAD OF TWO
@@ -1021,7 +1021,7 @@ void draw_2d_arrow(const Vec2f base, const Vec2f point, float arrow_head_length)
     v = v/mag(v);
 
 	if (!arrow_head_length) {
-		arrow_head_length = 0.1f * (float)len;
+		arrow_head_length = 0.1 * len;
 	}
     
 	// arrow head points

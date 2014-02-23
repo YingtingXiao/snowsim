@@ -5,9 +5,6 @@
 #include "pcgsolver/sparse_matrix.h"
 #include "pcgsolver/pcg_solver.h"
 
-#include "volume_fractions.h"
-#include "viscosity3d.h"
-
 void extrapolate(Array3f& grid, Array3c& valid);
 
 void FluidSim::initialize(float width, int ni_, int nj_, int nk_) {
@@ -26,21 +23,9 @@ void FluidSim::initialize(float width, int ni_, int nj_, int nk_) {
    v.set_zero();
    w.set_zero();
    nodal_solid_phi.resize(ni+1,nj+1,nk+1);
-   cell_solid_phi.resize(ni,nj,nk);
    valid.resize(ni+1, nj+1, nk+1);
    old_valid.resize(ni+1, nj+1, nk+1);
    liquid_phi.resize(ni,nj,nk);
-
-   //set viscosity to 1
-   viscosity.resize(ni+1, nj+1, nk+1, 1.0);
-
-   c_vol_liquid.resize(ni,nj,nk, 0);
-   u_vol_liquid.resize(ni+1,nj,nk, 0);
-   v_vol_liquid.resize(ni,nj+1,nk, 0);
-   w_vol_liquid.resize(ni,nj,nk+1, 0);
-   ex_vol_liquid.resize(ni,nj+1,nk+1, 0);
-   ey_vol_liquid.resize(ni+1,nj,nk+1, 0);
-   ez_vol_liquid.resize(ni+1,nj+1,nk, 0);
 
 }
 
@@ -50,11 +35,6 @@ void FluidSim::set_boundary(float (*phi)(const Vec3f&)) {
    for(int k = 0; k < nk+1; ++k) for(int j = 0; j < nj+1; ++j) for(int i = 0; i < ni+1; ++i) {
       Vec3f pos(i*dx,j*dx,k*dx);
       nodal_solid_phi(i,j,k) = phi(pos);
-   }
-   
-   for(int k = 0; k < nk; ++k) for(int j = 0; j < nj; ++j) for(int i = 0; i < ni; ++i) {
-      Vec3f pos((i+0.5f)*dx,(j+0.5f)*dx,(k+0.5f)*dx);
-      cell_solid_phi(i,j,k) = phi(pos);
    }
 
 }
@@ -94,9 +74,6 @@ void FluidSim::advance(float dt) {
       //Advance the velocity
       advect(substep);
       add_force(substep);
-      
-      printf(" Solve viscosity");
-      apply_viscosity(substep);
 
       printf(" Pressure projection\n");
       project(substep); 
@@ -146,70 +123,6 @@ void FluidSim::add_force(float dt) {
 }
 
 
-//Perform the viscosity solve
-
-void FluidSim::apply_viscosity(float dt) {
-   
-   printf("Computing weights\n");
-   //Estimate weights at velocity and stress positions
-   compute_viscosity_weights();
-
-   printf("Setting up solve\n");
-   //Set up and solve the linear system
-   solve_viscosity(dt);
-}
-
-void FluidSim::solve_viscosity(float dt) {
-
-   advance_viscosity_implicit_weighted(u, v, w, 
-                                       u_vol_liquid, v_vol_liquid, w_vol_liquid, 
-                                       c_vol_liquid, ex_vol_liquid, ey_vol_liquid, ez_vol_liquid, cell_solid_phi, viscosity, dt, dx);
-
-}
-
-float interpolate_phi(const Vec3f& point, const Array3f& grid, const Vec3f& origin, const float dx) {
-   float inv_dx = 1/dx;
-   Vec3f temp = (point-origin)*inv_dx;
-   return interpolate_value(temp, grid);
-}
-
-void estimate_volume_fractions(Array3f& volumes, 
-                               const Vec3f& start_centre, const float dx, 
-                               const Array3f& phi, const Vec3f& phi_origin, const float phi_dx) 
-{
-
-   for(int k = 0; k < volumes.nk; ++k) for(int j = 0; j < volumes.nj; ++j) for(int i = 0; i < volumes.ni; ++i)  {
-      Vec3f centre = start_centre + Vec3f(i*dx, j*dx, k*dx);
-
-      float offset = 0.5f*dx;
-
-      float phi000 = interpolate_phi(centre + Vec3f(-offset,-offset,-offset), phi, phi_origin, phi_dx);
-      float phi001 = interpolate_phi(centre + Vec3f(-offset,-offset,+offset), phi, phi_origin, phi_dx);
-      float phi010 = interpolate_phi(centre + Vec3f(-offset,+offset,-offset), phi, phi_origin, phi_dx);
-      float phi011 = interpolate_phi(centre + Vec3f(-offset,+offset,+offset), phi, phi_origin, phi_dx);
-      float phi100 = interpolate_phi(centre + Vec3f(+offset,-offset,-offset), phi, phi_origin, phi_dx);
-      float phi101 = interpolate_phi(centre + Vec3f(+offset,-offset,+offset), phi, phi_origin, phi_dx);
-      float phi110 = interpolate_phi(centre + Vec3f(+offset,+offset,-offset), phi, phi_origin, phi_dx);
-      float phi111 = interpolate_phi(centre + Vec3f(+offset,+offset,+offset), phi, phi_origin, phi_dx);
-
-      volumes(i,j,k) = volume_fraction(phi000, phi100, phi010, phi110, phi001, phi101, phi011, phi111);
-
-   }
-
-}
-
-void FluidSim::compute_viscosity_weights() {
-
-   estimate_volume_fractions(c_vol_liquid,  Vec3f(0.5f*dx, 0.5f*dx, 0.5f*dx), dx, liquid_phi, Vec3f(0,0,0), dx); 
-   estimate_volume_fractions(u_vol_liquid,  Vec3f(0,       0.5f*dx, 0.5f*dx), dx, liquid_phi, Vec3f(0,0,0), dx); 
-   estimate_volume_fractions(v_vol_liquid,  Vec3f(0.5f*dx, 0,       0.5f*dx), dx, liquid_phi, Vec3f(0,0,0), dx); 
-   estimate_volume_fractions(w_vol_liquid,  Vec3f(0.5f*dx, 0.5f*dx, 0),       dx, liquid_phi, Vec3f(0,0,0), dx); 
-   estimate_volume_fractions(ex_vol_liquid, Vec3f(0.5f*dx, 0,       0),       dx, liquid_phi, Vec3f(0,0,0), dx); 
-   estimate_volume_fractions(ey_vol_liquid, Vec3f(0,       0.5f*dx, 0),       dx, liquid_phi, Vec3f(0,0,0), dx); 
-   estimate_volume_fractions(ez_vol_liquid, Vec3f(0,       0,       0.5f*dx), dx, liquid_phi, Vec3f(0,0,0), dx);
-
-}
-
 
 //For extrapolated points, replace the normal component
 //of velocity with the object velocity (in this case zero).
@@ -226,7 +139,14 @@ void FluidSim::constrain_velocity() {
    for(int k = 0; k < u.nk;++k) for(int j = 0; j < u.nj; ++j) for(int i = 0; i < u.ni; ++i) {
       if(u_weights(i,j,k) == 0) {
          //apply constraint
-         temp_u(i,j,k) = 0;//vel[0];
+         Vec3f pos(i*dx, (j+0.5f)*dx, (k+0.5f)*dx);
+         Vec3f vel = get_velocity(pos);
+         Vec3f normal(0,0,0);
+         interpolate_gradient(normal, pos/dx, nodal_solid_phi); 
+         normalize(normal);
+         float perp_component = dot(vel, normal);
+         vel -= perp_component*normal;
+         temp_u(i,j,k) = vel[0];
       }
    }
 
@@ -234,7 +154,14 @@ void FluidSim::constrain_velocity() {
    for(int k = 0; k < v.nk;++k) for(int j = 0; j < v.nj; ++j) for(int i = 0; i < v.ni; ++i) {
       if(v_weights(i,j,k) == 0) {
          //apply constraint
-         temp_v(i,j,k) = 0; //vel[1];
+         Vec3f pos((i+0.5f)*dx, j*dx, (k+0.5f)*dx);
+         Vec3f vel = get_velocity(pos);
+         Vec3f normal(0,0,0);
+         interpolate_gradient(normal, pos/dx, nodal_solid_phi); 
+         normalize(normal);
+         float perp_component = dot(vel, normal);
+         vel -= perp_component*normal;
+         temp_v(i,j,k) = vel[1];
       }
    }
 
@@ -242,7 +169,14 @@ void FluidSim::constrain_velocity() {
    for(int k = 0; k < w.nk;++k) for(int j = 0; j < w.nj; ++j) for(int i = 0; i < w.ni; ++i) {
       if(w_weights(i,j,k) == 0) {
          //apply constraint
-         temp_w(i,j,k) = 0; //vel[2];
+         Vec3f pos((i+0.5f)*dx, (j+0.5f)*dx, k*dx);
+         Vec3f vel = get_velocity(pos);
+         Vec3f normal(0,0,0);
+         interpolate_gradient(normal, pos/dx, nodal_solid_phi); 
+         normalize(normal);
+         float perp_component = dot(vel, normal);
+         vel -= perp_component*normal;
+         temp_w(i,j,k) = vel[2];
       }
    }
 
@@ -523,37 +457,6 @@ void FluidSim::solve_pressure(float dt) {
                   matrix.add_to_element(index, index, term/theta);
                }
                rhs[index] += w_weights(i,j,k)*w(i,j,k) / dx;
-
-               /*
-               //far neighbour
-               term = w_weights(i,j,k+1) * dt / sqr(dx);
-               float far_phi = liquid_phi(i,j,k+1);
-               if(far_phi < 0) {
-                  matrix.add_to_element(index, index, term);
-                  matrix.add_to_element(index, index + ni*nj, -term);
-               }
-               else {
-                  float theta = fraction_inside(centre_phi, far_phi);
-                  if(theta < 0.01f) theta = 0.01f;
-                  matrix.add_to_element(index, index, term/theta);
-               }
-               rhs[index] -= w_weights(i,j,k+1)*w(i,j,k+1) / dx;
-
-               //near neighbour
-               term = w_weights(i,j,k) * dt / sqr(dx);
-               float near_phi = liquid_phi(i,j,k-1);
-               if(near_phi < 0) {
-                  matrix.add_to_element(index, index, term);
-                  matrix.add_to_element(index, index - ni*nj, -term);
-               }
-               else {
-                  float theta = fraction_inside(centre_phi, near_phi);
-                  if(theta < 0.01f) theta = 0.01f;
-                  matrix.add_to_element(index, index, term/theta);
-               }
-               rhs[index] += w_weights(i,j,k)*w(i,j,k) / dx;   
-               */
-
             }
          }
       }

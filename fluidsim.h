@@ -28,16 +28,8 @@ public:
    
    //Static geometry representation
    Array3f nodal_solid_phi;
-   Array3f cell_solid_phi;
    Array3f u_weights, v_weights, w_weights;
    Array3c u_valid, v_valid, w_valid;
-
-
-   //Data for viscosity solve
-   Array3f u_vol_liquid, v_vol_liquid, w_vol_liquid,
-      ex_vol_liquid, ey_vol_liquid, ez_vol_liquid, c_vol_liquid;
-
-   Array3f viscosity;
 
    std::vector<Vec3f> particles;
    float particle_radius;
@@ -64,7 +56,6 @@ private:
    void advect_particles(float dt);
    void advect(float dt);
    void add_force(float dt);
-   void apply_viscosity(float dt);   
    void project(float dt);
    void constrain_velocity();
 
@@ -73,9 +64,7 @@ private:
    void solve_pressure(float dt);
    void compute_phi();
 
-   //helpers for viscosity
-   void compute_viscosity_weights();
-   void solve_viscosity(float dt);
+
 
 };
 

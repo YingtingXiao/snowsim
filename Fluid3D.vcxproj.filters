@@ -10,7 +10,7 @@
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
     <Filter Include="Header Files\pcgsolver">
-      <UniqueIdentifier>{3f0dcc5f-a76e-411e-8e55-f6274048d1a5}</UniqueIdentifier>
+      <UniqueIdentifier>{2089b783-e49f-4a7b-93dc-89ae3d2f9afd}</UniqueIdentifier>
     </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
@@ -27,10 +27,7 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="viscosity3d.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="volume_fractions.cpp">
+    <ClCompile Include="viewpls3D\gluvi.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -50,28 +47,13 @@
     <ClInclude Include="fluidsim.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="gluvi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="hashtable.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="levelset_util.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="openglutils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="vec.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="viscosity3d.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="volume_fractions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="pcgsolver\blas_wrapper.h">
@@ -82,6 +64,9 @@
     </ClInclude>
     <ClInclude Include="pcgsolver\sparse_matrix.h">
       <Filter>Header Files\pcgsolver</Filter>
+    </ClInclude>
+    <ClInclude Include="viewpls3D\gluvi.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -91,11 +91,11 @@ void set_lights_and_material(int object)
    glLightfv(GL_LIGHT1, GL_DIFFUSE, color2);
    glLightfv(GL_LIGHT1, GL_POSITION, position2);
 
-   GLfloat obj_color[4] = {.2f, .3f, .7f};
+   GLfloat obj_color[4] = {.2, .3, .7};
    glMaterialfv (GL_FRONT, GL_AMBIENT, obj_color);
    glMaterialfv (GL_FRONT, GL_DIFFUSE, obj_color);
 
-   GLfloat specular[4] = {.4f, .2f, .8f};
+   GLfloat specular[4] = {.4, .2, .8};
    glMaterialf (GL_FRONT, GL_SHININESS, 32);
    glMaterialfv (GL_FRONT, GL_SPECULAR, specular);
    glEnable(GL_LIGHT0);
@@ -133,9 +133,9 @@ void display(void)
    //Coordinate system
    glDisable(GL_LIGHTING);
    glBegin(GL_LINES);
-   glColor3f(1.0f,0,0); glVertex3f(0,0,0); glVertex3f(0.1f,0,0);
-   glColor3f(0.0f,1.0f,0); glVertex3f(0,0,0); glVertex3f(0,0.1f,0);
-   glColor3f(0.0f,0,1.0f); glVertex3f(0,0,0); glVertex3f(0,0,0.1f);
+   glColor3f(1,0,0); glVertex3f(0,0,0); glVertex3f(0.1,0,0);
+   glColor3f(0,1,0); glVertex3f(0,0,0); glVertex3f(0,0.1,0);
+   glColor3f(0,0,1); glVertex3f(0,0,0); glVertex3f(0,0,0.1);
    glEnd();
 
    glEnable(GL_LIGHTING);
