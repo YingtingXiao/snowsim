@@ -7,8 +7,11 @@
 
 #include "fluidsim.h"
 #include "array3_utils.h"
+#include "GL/glew.h"
 #include "gluvi.h"
 #include "stb_image_write.h"
+#include "obj.h"
+#include "objloader.h"
 
 using namespace std;
 
@@ -26,7 +29,7 @@ bool running = true;
 std::vector<Vec3f> particle_positions;
 float particle_radius;
 string frame_number="frame 0";
-char * ppmfileformat;
+obj* solidBoundary = new obj();
 
 float sphere_phi(const Vec3f& position, const Vec3f& centre, float radius) {
     return (dist(position,centre) - radius);
@@ -82,7 +85,6 @@ void timer(int value)
         glutTimerFunc(200, timer, 0);
     }
 
-
     if(running) {
         simulate_frame(frame);
         glutTimerFunc(1, timer, 0);
@@ -91,6 +93,25 @@ void timer(int value)
 
 }
 
+//Draw solid boundary from mesh
+void drawSolidBoundary() {
+    glColor3f(0,0,0);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    glBegin(GL_TRIANGLES);
+    for (int i=0; i<solidBoundary->faces.size(); ++i) {
+        vector<int> face = solidBoundary->faces[i];
+        glm::vec3 p0 = glm::vec3(solidBoundary->points[face[0]]);
+        for (int j=1; j<face.size()-1; j++) {
+            glm::vec3 p1 = glm::vec3(solidBoundary->points[face[j]]);
+            glm::vec3 p2 = glm::vec3(solidBoundary->points[face[j+1]]);
+            glVertex3f(p0.x, p0.y, p0.z);
+            glVertex3f(p1.x, p1.y, p1.z);
+            glVertex3f(p2.x, p2.y, p2.z);
+        }
+    }
+    glEnd();
+}
 
 void display(void)
 {
@@ -165,64 +186,10 @@ void display(void)
     glEnd();
 
     //Draw wireframe sphere geometry (specific to this scene).
-    glColor3f(0,0,0);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINES);
-    GLUquadric* sphere;
-    sphere = gluNewQuadric();
-    gluQuadricDrawStyle(sphere, GLU_LINE );
-    glPushMatrix();
-    glTranslatef(0.5f, 0.5f,0.5f);
-    gluSphere(sphere, 0.42, 20, 20);
-    glPopMatrix();
-
-
+    drawSolidBoundary();
 }
 
-struct ScreenShotButton : public Gluvi::Button{
-    const char *filename_format;
-    ScreenShotButton(const char *label, const char *filename_format_) : Gluvi::Button(label), filename_format(filename_format_) {}
-    void action()
-    { 
-        Gluvi::ppm_screenshot(filename_format, frame); 
-    }
-};
-
-
-struct MovieButton : public Gluvi::Button{
-    const char *filename_format;
-    MovieButton(const char *label, const char *filename_format_) : Gluvi::Button(label), filename_format(filename_format_) {}
-    void action()
-    { 
-        if(!running) {
-            if(!filming) {
-                filming = true;
-                glutTimerFunc(1000, timer, 0);
-            }
-            else {
-                filming = false;
-            }
-        }
-    }
-};
-
-struct RunButton : public Gluvi::Button{
-    RunButton(const char *label) : Gluvi::Button(label){}
-    void action()
-    { 
-        if(!filming) {
-            if(!running) {
-                running = true;
-                glutTimerFunc(200, timer, 0);
-            }
-            else {
-                running = false;
-            }
-        }
-    }
-};
-
 void keyPress(unsigned char key, int x, int y) {
-
     if(key == 'r') {
         if(!filming) {
             if(!running) {
@@ -258,17 +225,8 @@ void setupDisplay(int argc, char **argv) {
 
     Gluvi::userDisplayFunc=display;
 
-    Gluvi::StaticText frametext(frame_number.c_str());
-    Gluvi::root.list.push_back(&frametext);
-
-    ScreenShotButton screenshot("Screenshot", ppmfileformat);
-    Gluvi::root.list.push_back(&screenshot);
-
-    MovieButton movie("Movie", ppmfileformat);
-    Gluvi::root.list.push_back(&movie);
-
-    RunButton run("Run");
-    Gluvi::root.list.push_back(&run);
+    //Gluvi::StaticText frametext(frame_number.c_str());
+    //Gluvi::root.list.push_back(&frametext);
 
     Gluvi::run();
 }
@@ -278,13 +236,6 @@ void setupDisplay(int argc, char **argv) {
 //-------------
 int main(int argc, char **argv)
 {
-    //if(argc!=2){
-    //	cerr << "The first parameter should be the folder to write the output liquid meshes into. (eg. c:\\output\\)" << endl;
-    //	return 1;
-    //}
-
-    //outpath = argv[1];
-
     if(argc != 3){
     	cerr << "Not enough arguments" << endl;
     	return 1;
@@ -304,6 +255,11 @@ int main(int argc, char **argv)
 
     printf("Exporting initial data\n");
     export_particles(outpath, 0, sim.particles, sim.particle_radius);
+
+    //Load obj for drawing boundary
+    objLoader* loader = new objLoader(solid_file, solidBoundary);
+    solidBoundary->buildVBOs();
+    delete loader;
 
     setupDisplay(argc, argv);
 

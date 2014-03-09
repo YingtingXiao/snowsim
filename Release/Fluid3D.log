@@ -1,20 +1,21 @@
-﻿Build started 2/27/2014 12:52:00 PM.
+﻿Build started 3/9/2014 3:47:01 PM.
      1>Project "C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Fluid3D.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /Zi /nologo /W3 /WX- /O2 /Ot /Oy- /GT /GL /D WIN32 /D _CRT_SECURE_NO_DEPRECATE /D USE_MKL_CBLAS /D USE_MKL_LAPACK /D _SCL_SECURE_NO_WARNINGS /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc110.pdb" /Gd /TP /analyze- /errorReport:prompt main.cpp
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /Iglew/include /Zi /nologo /W3 /WX- /O2 /Ot /Oy- /GT /GL /D WIN32 /D _CRT_SECURE_NO_DEPRECATE /D USE_MKL_CBLAS /D USE_MKL_LAPACK /D _SCL_SECURE_NO_WARNINGS /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc110.pdb" /Gd /TP /analyze- /errorReport:prompt main.cpp
          main.cpp
-     1>main.cpp(70): warning C4305: 'argument' : truncation from 'double' to 'GLfloat'
-     1>main.cpp(102): warning C4305: 'argument' : truncation from 'double' to 'GLfloat'
-     1>main.cpp(103): warning C4305: 'argument' : truncation from 'double' to 'GLfloat'
-     1>main.cpp(104): warning C4305: 'argument' : truncation from 'double' to 'GLfloat'
-         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /Zi /nologo /W3 /WX- /O2 /Ot /Oy- /GT /GL /D WIN32 /D _CRT_SECURE_NO_DEPRECATE /D USE_MKL_CBLAS /D USE_MKL_LAPACK /D _SCL_SECURE_NO_WARNINGS /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc110.pdb" /Gd /TC /analyze- /errorReport:prompt stb_image.c stb_image_write.c
-         stb_image.c
-         stb_image_write.c
+     1>main.cpp(73): warning C4305: 'argument' : truncation from 'double' to 'GLfloat'
+     1>main.cpp(102): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(105): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(123): warning C4305: 'argument' : truncation from 'double' to 'GLfloat'
+     1>main.cpp(124): warning C4305: 'argument' : truncation from 'double' to 'GLfloat'
+     1>main.cpp(125): warning C4305: 'argument' : truncation from 'double' to 'GLfloat'
        Link:
-         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Release\Fluid3D.exe" /NOLOGO opengl32.lib glu32.lib glut32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /PDB:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Release\Fluid3D.pdb" /LTCG /TLBID:1 /DYNAMICBASE:NO /IMPLIB:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Release\Fluid3D.lib" /MACHINE:X86 /SAFESEH:NO Release\fluidsim.obj
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Release\Fluid3D.exe" /NOLOGO /LIBPATH:glew/lib glew32.lib opengl32.lib glu32.lib glut32.lib glew32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /PDB:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Release\Fluid3D.pdb" /LTCG /TLBID:1 /DYNAMICBASE:NO /IMPLIB:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Release\Fluid3D.lib" /MACHINE:X86 /SAFESEH:NO Release\fluidsim.obj
          Release\levelset_util.obj
          Release\main.obj
          Release\makelevelset3.obj
+         Release\obj.obj
+         Release\objloader.obj
          Release\stb_image.obj
          Release\stb_image_write.obj
          Release\gluvi.obj
@@ -25,4 +26,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:02.63
+Time Elapsed 00:00:03.18

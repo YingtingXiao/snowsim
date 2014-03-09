@@ -65,7 +65,6 @@ void FluidSim::initialize_phi(string filename, Array3f& phi, bool solid) {
 			    Vec3f point;
 			    data >> c >> point[0] >> point[1] >> point[2];
 			    vertList.push_back(point);
-			    //update_minmax(point, min_box, max_box);
 		    }
 		    else if(line.substr(0,1) == string("f")) {
 			    stringstream data(line);
@@ -82,7 +81,7 @@ void FluidSim::initialize_phi(string filename, Array3f& phi, bool solid) {
 	    }
 	    infile.close();
 
-       int size = ni + 1;
+       int size = solid ? ni + 1 : ni;
 	    float maxDim = max(max(max_box[0]-min_box[0], max_box[1]-min_box[1]), max_box[2]-min_box[2]);
 	    float dx = maxDim/size;
 
@@ -102,7 +101,7 @@ void FluidSim::initialize_phi(string filename, Array3f& phi, bool solid) {
 	    string outname = filename.substr(0, filename.size()-4) + std::string(".sdf");
 	    cout << "Writing results to: " << outname << "\n";
 	    ofstream outfile( outname.c_str());
-	    outfile << ni << " " << nj << " " << nk << endl;
+	    outfile << size << " " << size << " " << size << endl;
 	    outfile << min_box[0] << " " << min_box[1] << " " << min_box[2] << std::endl;
 	    outfile << dx << std::endl;
 	    for(unsigned int i = 0; i < phi.a.size(); ++i) {
@@ -125,12 +124,10 @@ bool FluidSim::load_levelset(string filename, Array3f& phi, bool solid) {
 	getline(infile, line);
 	getline(infile, line);
 	getline(infile, line);
-	for(int k = 0;k < nk; ++k) for(int j = 0; j < nj; ++j) for(int i = 0; i < ni; ++i) {
+   int size = solid ? ni+1 : ni;
+	for(int k = 0; k < size; ++k) for(int j = 0; j < size; ++j) for(int i = 0; i < size; ++i) {
 		getline(infile, line);
 		phi(i,j,k) = atof(line.c_str());
-      if (solid) {
-          phi(i, j, k) = -phi(i, j, k);
-      }
 	}
 	infile.close();
    cout << "Finished loading" << endl;
@@ -331,8 +328,6 @@ void FluidSim::advect_particles(float dt) {
 			particles[p] -= phi_val * grad;
 		}
 	}
-
-
 }
 
 //Basic first order semi-Lagrangian advection of velocities

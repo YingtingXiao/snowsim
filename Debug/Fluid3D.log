@@ -1,21 +1,27 @@
-﻿Build started 2/27/2014 11:50:22 AM.
+﻿Build started 3/6/2014 4:49:52 PM.
      1>Project "C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Fluid3D.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /ZI /nologo /W1 /WX- /Od /Oy- /D USE_AMD_BLAS /D WIN32 /D _CRT_SECURE_NO_DEPRECATE /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc110.pdb" /Gd /TP /analyze- /errorReport:prompt fluidsim.cpp
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /Iglew/include /ZI /nologo /W1 /WX- /Od /Oy- /D USE_AMD_BLAS /D WIN32 /D _CRT_SECURE_NO_DEPRECATE /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc110.pdb" /Gd /TP /analyze- /errorReport:prompt fluidsim.cpp main.cpp
          fluidsim.cpp
      1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\fluidsim.cpp(72): warning C4129: ' ' : unrecognized character escape sequence
      1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\fluidsim.cpp(73): warning C4129: ' ' : unrecognized character escape sequence
      1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\fluidsim.cpp(75): warning C4129: ' ' : unrecognized character escape sequence
      1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\fluidsim.cpp(77): warning C4129: ' ' : unrecognized character escape sequence
+         main.cpp
+         Generating Code...
        Link:
-         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Debug\Fluid3D.exe" /NOLOGO opengl32.lib glu32.lib glut32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Debug\Fluid3D.pdb" /MAP /TLBID:1 /DYNAMICBASE:NO /IMPLIB:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Debug\Fluid3D.lib" /MACHINE:X86 /SAFESEH:NO Debug\fluidsim.obj
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Debug\Fluid3D.exe" /NOLOGO /LIBPATH:glew/lib glew32.lib opengl32.lib glu32.lib glut32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Debug\Fluid3D.pdb" /MAP /TLBID:1 /DYNAMICBASE:NO /IMPLIB:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Debug\Fluid3D.lib" /MACHINE:X86 /SAFESEH:NO Debug\fluidsim.obj
          Debug\levelset_util.obj
          Debug\main.obj
          Debug\makelevelset3.obj
+         Debug\obj.obj
+         Debug\objloader.obj
+         Debug\stb_image.obj
+         Debug\stb_image_write.obj
          Debug\gluvi.obj
          Fluid3D.vcxproj -> C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Debug\Fluid3D.exe
      1>Done Building Project "C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Fluid3D.vcxproj" (Build target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:01.03
+Time Elapsed 00:00:02.23
