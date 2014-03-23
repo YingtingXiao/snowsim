@@ -1,0 +1,19 @@
+grid node - ?
+J in equation 6? the determinant of Fe
+solve equation 9? conjugate gradient (because it's positive definite and symmetric)
+mass symmetric - x'y -> x'my (another possible way: scale the system by the mass matrix) second particle is symmetric, m-1 is diagonal. multiplying both sides by m will make it symmetric
+stopping conditions for CG: iteration, residural < 0.00004, absolute tolerance
+reaching convergence is not very important
+solver to use?
+CG only gives you the right answer for symmetric matrices
+
+particles communicate through grid
+grid performs viscosity
+extension to MAC grid
+grid: less blurry advection - no damping
+equation 11 - taylor expansion (no straight up velocity) - the critical equation
+
+F is initialized to I
+chris batty and bridson - fewer particles
+conserving mass by having mass
+27-64 particles per cell. grid doesnt have to be very high-res

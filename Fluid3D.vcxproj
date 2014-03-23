@@ -81,36 +81,38 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="fluidsim.cpp" />
-    <ClCompile Include="levelset_util.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="makelevelset3.cpp" />
-    <ClCompile Include="obj.cpp" />
-    <ClCompile Include="objloader.cpp" />
-    <ClCompile Include="stb_image.c" />
-    <ClCompile Include="stb_image_write.c" />
-    <ClCompile Include="viewpls3D\gluvi.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="array1.h" />
-    <ClInclude Include="array2.h" />
-    <ClInclude Include="array2_utils.h" />
-    <ClInclude Include="array3_utils.h" />
-    <ClInclude Include="fluidsim.h" />
-    <ClInclude Include="hashgrid.h" />
-    <ClInclude Include="hashtable.h" />
-    <ClInclude Include="levelset_util.h" />
-    <ClInclude Include="makelevelset3.h" />
-    <ClInclude Include="obj.h" />
-    <ClInclude Include="objloader.h" />
-    <ClInclude Include="stb_image.h" />
-    <ClInclude Include="stb_image_write.h" />
-    <ClInclude Include="util.h" />
-    <ClInclude Include="vec.h" />
     <ClInclude Include="pcgsolver\blas_wrapper.h" />
     <ClInclude Include="pcgsolver\pcg_solver.h" />
     <ClInclude Include="pcgsolver\sparse_matrix.h" />
-    <ClInclude Include="viewpls3D\gluvi.h" />
+    <ClInclude Include="source\array1.h" />
+    <ClInclude Include="source\array2.h" />
+    <ClInclude Include="source\array2_utils.h" />
+    <ClInclude Include="source\array3.h" />
+    <ClInclude Include="source\array3_utils.h" />
+    <ClInclude Include="source\fluidsim.h" />
+    <ClInclude Include="source\gluvi.h" />
+    <ClInclude Include="source\hashgrid.h" />
+    <ClInclude Include="source\hashtable.h" />
+    <ClInclude Include="source\levelset_util.h" />
+    <ClInclude Include="source\makelevelset3.h" />
+    <ClInclude Include="source\obj.h" />
+    <ClInclude Include="source\objloader.h" />
+    <ClInclude Include="source\particle.h" />
+    <ClInclude Include="source\stb_image.h" />
+    <ClInclude Include="source\stb_image_write.h" />
+    <ClInclude Include="source\util.h" />
+    <ClInclude Include="source\vec.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="source\fluidsim.cpp" />
+    <ClCompile Include="source\gluvi.cpp" />
+    <ClCompile Include="source\levelset_util.cpp" />
+    <ClCompile Include="source\main.cpp" />
+    <ClCompile Include="source\makelevelset3.cpp" />
+    <ClCompile Include="source\obj.cpp" />
+    <ClCompile Include="source\objloader.cpp" />
+    <ClCompile Include="source\stb_image.c" />
+    <ClCompile Include="source\stb_image_write.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
