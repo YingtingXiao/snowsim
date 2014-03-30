@@ -12,6 +12,7 @@
 
 #include "makelevelset3.h"
 
+float getWeight(float dx, int i, int j, int k, Vec3f pos);
 void extrapolate(Array3f& grid, Array3c& valid);
 
 void FluidSim::initialize(float width, int ni_, int nj_, int nk_) {
@@ -22,9 +23,10 @@ void FluidSim::initialize(float width, int ni_, int nj_, int nk_) {
    u.resize(ni+1,nj,nk); temp_u.resize(ni+1,nj,nk); u_weights.resize(ni+1,nj,nk); u_valid.resize(ni+1,nj,nk);
    v.resize(ni,nj+1,nk); temp_v.resize(ni,nj+1,nk); v_weights.resize(ni,nj+1,nk); v_valid.resize(ni,nj+1,nk);
    w.resize(ni,nj,nk+1); temp_w.resize(ni,nj,nk+1); w_weights.resize(ni,nj,nk+1); w_valid.resize(ni,nj,nk+1);
-
-   particle_radius = (float)(dx * 1.01*sqrt(3.0)/2.0); 
+ 
    //make the particles large enough so they always appear on the grid
+   particle_radius = (float)(dx * 1.01*sqrt(3.0)/2.0);
+   particle_mass = 1;
 
    u.set_zero();
    v.set_zero();
@@ -33,17 +35,20 @@ void FluidSim::initialize(float width, int ni_, int nj_, int nk_) {
    valid.resize(ni+1, nj+1, nk+1);
    old_valid.resize(ni+1, nj+1, nk+1);
    liquid_phi.resize(ni,nj,nk);
-
+   mass.resize(ni,nj,nk);
+   mass.set_zero();
 }
 
 void FluidSim::initialize_phi(string filename, Array3f& phi, bool solid) {
+
    if(filename.size() < 5 || filename.substr(filename.size()-4) != string(".obj")) {
       cout << filename << endl;
       cerr << "Error: Expected OBJ file with filename of the form <name>.obj.\n";
       return;
    }
 
-   string outname = filename.substr(0, filename.size()-4) + string(".sdf");
+   int size = solid ? ni + 1 : ni;
+   string outname = filename.substr(0, filename.size()-4) + "_" + to_string(size) + string(".sdf");
    if (!load_levelset(outname, phi, solid)) {
       ifstream infile(filename);
       if(!infile) {
@@ -81,7 +86,6 @@ void FluidSim::initialize_phi(string filename, Array3f& phi, bool solid) {
       }
       infile.close();
 
-      int size = solid ? ni + 1 : ni;
       float maxDim = max(max(max_box[0]-min_box[0], max_box[1]-min_box[1]), max_box[2]-min_box[2]);
       float dx = maxDim/size;
 
@@ -98,7 +102,7 @@ void FluidSim::initialize_phi(string filename, Array3f& phi, bool solid) {
       }
 
       //Very hackily strip off file suffix.
-      string outname = filename.substr(0, filename.size()-4) + std::string(".sdf");
+      string outname = filename.substr(0, filename.size()-4) + "_" + to_string(size) + std::string(".sdf");
       cout << "Writing results to: " << outname << "\n";
       ofstream outfile( outname.c_str());
       outfile << size << " " << size << " " << size << endl;
@@ -160,9 +164,11 @@ void FluidSim::set_liquid(float (*phi)(const Vec3f&)) {
       if(phi(pos) <= -particle_radius) {
          float solid_phi = interpolate_value(pos/dx, nodal_solid_phi);
          if(solid_phi >= 0)
-            particles.push_back(Particle(pos));
+            particles.push_back(Particle(pos, particle_mass));
       }
    }
+   
+   rasterize_particle_data();
 }
 
 //Initialize liquid phi from obj file
@@ -179,8 +185,34 @@ void FluidSim::set_liquid(string filename) {
       if(interpolate_value(pos/dx, liquid_phi) <= -particle_radius) {
          float solid_phi = interpolate_value(pos/dx, nodal_solid_phi);
          if(solid_phi >= 0)
-            particles.push_back(Particle(pos));
+            particles.push_back(Particle(pos, particle_mass));
       }
+   }
+
+   rasterize_particle_data();
+}
+
+//Rasterize particles' mass and velocity data to grid
+void FluidSim::rasterize_particle_data() {
+   for(int k = 0; k < nk; ++k) for(int j = 0; j < nj; ++j) for(int i = 0; i < ni; ++i) {
+      for (int p=0; p<particles.size(); ++p) {
+         float weight = getWeight(dx, i, j, k, particles[p].pos);
+         mass(i, j, k) += weight * particles[p].mass;
+         u(i, j, k) += particles[p].vel[0] * particles[p].mass * weight / mass(i, j, k);
+         v(i, j, k) += particles[p].vel[1] * particles[p].mass * weight / mass(i, j, k);
+         w(i, j, k) += particles[p].vel[2] * particles[p].mass * weight / mass(i, j, k);
+      }
+   }
+}
+
+// Computer particles' volumes and densities from grid
+void FluidSim::compute_particle_vol_dens() {
+   for (int p=0; p<particles.size(); ++p) {
+      for(int k = 0; k < nk; ++k) for(int j = 0; j < nj; ++j) for(int i = 0; i < ni; ++i) {
+         float weight = getWeight(dx, i, j, k, particles[p].pos);
+         particles[p].dens += mass(i, j, k) * weight / pow(dx, 3);
+      }
+      particles[p].vol = particles[p].mass / particles[p].dens;
    }
 }
 
@@ -640,6 +672,23 @@ void FluidSim::solve_pressure(float dt) {
          w.a[i] = 0;
 }
 
+//Helper functions for computing interpolating weights
+float getWeight1d(float x) {
+   if (abs(x) < 1) {
+      return 0.5 * abs(pow(x, 3)) - pow(x, 2) + 2.0/3.0;
+   } else if (abs(x) < 2) {
+      return -abs(pow(x, 3))/6 + pow(x, 2) - 2 * abs(x) + 4.0/3.0;
+   } else {
+      return 0;
+   }
+}
+
+float getWeight(float dx, int i, int j, int k, Vec3f pos) {
+   float Nx = getWeight1d(pos[0]/dx - i);
+   float Ny = getWeight1d(pos[1]/dx - j);
+   float Nz = getWeight1d(pos[2]/dx - k);
+   return Nx * Ny * Nz;
+}
 
 //Apply several iterations of a very simple propagation of valid velocity data in all directions
 void extrapolate(Array3f& grid, Array3c& valid) {

@@ -5,12 +5,13 @@
 
 struct Particle {
    Vec3f pos;   //position
+   float mass;     //mass
    Vec3f vel;   //velocity
    float dens;  //density
    float vol;   //volume
 
    Particle() {}
-   Particle(Vec3f p) : pos(p) {}
+   Particle(Vec3f p, float m) : pos(p), mass(m) {}
 };
 
 #endif

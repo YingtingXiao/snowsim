@@ -16,7 +16,7 @@
 using namespace std;
 
 //Simulation stuff
-int grid_resolution = 60;
+int grid_resolution = 0;
 float timestep = 0.01f;
 int frame = 0;
 float grid_width = 1;
@@ -233,13 +233,14 @@ void setupDisplay(int argc, char **argv) {
 //-------------
 int main(int argc, char **argv)
 {
-   if(argc != 3){
+   if(argc != 4){
       cerr << "Not enough arguments" << endl;
       return 1;
    }
 
    string solid_file(argv[1]);
    string liquid_file(argv[2]);
+   grid_resolution = atoi(argv[3]);
 
    printf("Initializing data\n");
    sim.initialize(grid_width, grid_resolution, grid_resolution, grid_resolution);

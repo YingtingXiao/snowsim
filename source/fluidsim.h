@@ -37,8 +37,12 @@ public:
 	//std::vector<Vec3f> particles;
    std::vector<Particle> particles;
 	float particle_radius;
+   float particle_mass;   //initial particle mass
 
 	Array3f liquid_phi;
+
+   //Grid mass and rasterized from particles
+   Array3f mass;
 
 	//Data arrays for extrapolation
 	Array3c valid, old_valid;
@@ -54,6 +58,8 @@ public:
 private:
 	void initialize_phi(string filename, Array3f& phi, bool solid);
    bool load_levelset(string filename, Array3f& phi, bool solid);
+   void rasterize_particle_data();
+   void compute_particle_vol_dens();
 
 	Vec3f trace_rk2(const Vec3f& position, float dt);
 
