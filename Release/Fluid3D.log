@@ -1,9 +1,49 @@
-﻿Build started 3/30/2014 12:19:38 PM.
+﻿Build started 4/3/2014 1:23:04 PM.
      1>Project "C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Fluid3D.vcxproj" on node 2 (Build target(s)).
-     1>Link:
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /Iglew/include /Zi /nologo /W3 /WX- /O2 /Ot /Oy- /GT /GL /D WIN32 /D _CRT_SECURE_NO_DEPRECATE /D USE_MKL_CBLAS /D USE_MKL_LAPACK /D _SCL_SECURE_NO_WARNINGS /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /openmp /Fo"Release\\" /Fd"Release\vc110.pdb" /Gd /TP /analyze- /errorReport:prompt source\fluidsim.cpp
+         fluidsim.cpp
+     1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\particle.h(31): warning C4244: '=' : conversion from 'float' to 'int', possible loss of data
+     1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\particle.h(32): warning C4244: '=' : conversion from 'float' to 'int', possible loss of data
+     1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\particle.h(33): warning C4244: '=' : conversion from 'float' to 'int', possible loss of data
+     1>source\fluidsim.cpp(21): warning C4305: 'initializing' : truncation from 'double' to 'float'
+     1>source\fluidsim.cpp(22): warning C4305: 'initializing' : truncation from 'double' to 'float'
+     1>source\fluidsim.cpp(25): warning C4305: 'initializing' : truncation from 'double' to 'float'
+     1>source\fluidsim.cpp(26): warning C4305: 'initializing' : truncation from 'double' to 'float'
+     1>source\fluidsim.cpp(27): warning C4305: 'initializing' : truncation from 'double' to 'float'
+     1>source\fluidsim.cpp(95): warning C4129: ' ' : unrecognized character escape sequence
+     1>source\fluidsim.cpp(96): warning C4129: ' ' : unrecognized character escape sequence
+     1>source\fluidsim.cpp(98): warning C4129: ' ' : unrecognized character escape sequence
+     1>source\fluidsim.cpp(100): warning C4129: ' ' : unrecognized character escape sequence
+     1>source\fluidsim.cpp(152): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>source\fluidsim.cpp(229): warning C4018: '<' : signed/unsigned mismatch
+     1>source\fluidsim.cpp(255): warning C4018: '<' : signed/unsigned mismatch
+     1>source\fluidsim.cpp(311): warning C4018: '<' : signed/unsigned mismatch
+     1>source\fluidsim.cpp(319): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>source\fluidsim.cpp(439): warning C4244: '-=' : conversion from 'double' to 'float', possible loss of data
+     1>source\fluidsim.cpp(467): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>source\fluidsim.cpp(496): warning C4018: '<' : signed/unsigned mismatch
+     1>source\fluidsim.cpp(512): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>source\fluidsim.cpp(539): warning C4018: '<' : signed/unsigned mismatch
+     1>source\fluidsim.cpp(571): warning C4018: '<' : signed/unsigned mismatch
+     1>source\fluidsim.cpp(629): warning C4018: '<' : signed/unsigned mismatch
+     1>source\fluidsim.cpp(729): warning C4244: 'return' : conversion from 'double' to 'float', possible loss of data
+     1>source\fluidsim.cpp(731): warning C4244: 'return' : conversion from 'double' to 'float', possible loss of data
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Release\Fluid3D.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:glew/lib glew32.lib opengl32.lib glu32.lib glut32.lib glew32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Release\Fluid3D.pdb" /OPT:REF /LTCG /TLBID:1 /DYNAMICBASE:NO /IMPLIB:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Release\Fluid3D.lib" /MACHINE:X86 /SAFESEH:NO Release\fluidsim.obj
+         Release\gluvi.obj
+         Release\levelset_util.obj
+         Release\main.obj
+         Release\makelevelset3.obj
+         Release\obj.obj
+         Release\objloader.obj
+         Release\stb_image.obj
+         Release\stb_image_write.obj
+         Generating code
+         Finished generating code
          Fluid3D.vcxproj -> C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Release\Fluid3D.exe
      1>Done Building Project "C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Fluid3D.vcxproj" (Build target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:00.04
+Time Elapsed 00:00:06.65

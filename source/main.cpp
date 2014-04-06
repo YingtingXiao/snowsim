@@ -13,6 +13,8 @@
 #include "obj.h"
 #include "objloader.h"
 
+#include "Eigen/Dense"
+
 using namespace std;
 
 //Simulation stuff
@@ -47,7 +49,7 @@ float liquid_phi(const Vec3f& position) {
 }
 
 void simulate_frame(int frame);
-void export_particles(string path, int frame, const std::vector<Particle>& particles, float radius);
+void export_particles(string path, int frame, const std::vector<Particle>& particles);
 
 //Display fluid
 void set_view(Gluvi::Target3D &cam)
@@ -139,7 +141,7 @@ void display(void)
       glPushMatrix();
       Vec3f pos = sim.particles[p].pos;
       glTranslatef(pos[0], pos[1], pos[2]);
-      gluSphere(particle_sphere, sim.particle_radius, 20, 20);
+      gluSphere(particle_sphere, sim.particles[p].radius/*0.01*/, 20, 20);
       glPopMatrix();   
    }
 
@@ -251,8 +253,8 @@ int main(int argc, char **argv)
    printf("Initializing liquid\n");
    sim.set_liquid(liquid_file);
 
-   printf("Exporting initial data\n");
-   export_particles(outpath, 0, sim.particles, sim.particle_radius);
+   //printf("Exporting initial data\n");
+   //export_particles(outpath, 0, sim.particles);
 
    //Load obj for drawing boundary
    objLoader* loader = new objLoader(solid_file, solidBoundary);
@@ -269,7 +271,7 @@ void simulate_frame(int frame) {
 
    //Simulate
    printf("Simulating liquid\n");
-   sim.advance(timestep);
+   sim.advance(timestep, frame==1);
 
    //printf("Exporting particle data\n");
    //export_particles(outpath, frame, sim.particles, sim.particle_radius);
@@ -293,15 +295,13 @@ void simulate_frame(int frame) {
    delete [] bitmapData;
 }
 
-void export_particles(string path, int frame, const std::vector<Particle>& particles, float radius) {
+void export_particles(string path, int frame, const std::vector<Particle>& particles) {
    //Write the output
    std::stringstream strout;
    strout << path << "particles_" << frame << ".txt";
    string filepath = strout.str();
 
    ofstream outfile(filepath.c_str());
-   //write vertex count and particle radius
-   outfile << particles.size() << " " << radius << std::endl;
    //write vertices
    for(unsigned int i = 0; i < particles.size(); ++i)
       outfile << particles[i].pos[0] << " " << particles[i].pos[1] << " " << particles[i].pos[2] << std::endl;

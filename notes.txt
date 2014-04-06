@@ -17,3 +17,16 @@ F is initialized to I
 chris batty and bridson - fewer particles
 conserving mass by having mass
 27-64 particles per cell. grid doesnt have to be very high-res
+
+
+QUESTIONS 4/3/2014
+when do we apply external force? after we compute grid forces?
+is sigma the partial derivative of psi at F_Ep?
+initial value for deformation gradient: 3*3 identity matrix?
+satisfy cfl?
+should collision detection use predicted particle positions?
+what if the predicted position still penetrates the solid after we update velocity - add more iterations?
+step size for gradient and derivative? dx/2?
+negative determinant of deformation gradient? restrict singular values to a certain range?
+
+equation 9

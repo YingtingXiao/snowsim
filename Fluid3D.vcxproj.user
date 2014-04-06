@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>obj/solid_sphere.obj obj/liquid_sphere.obj</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>obj/solid_sphere.obj obj/liquid_sphere.obj 40</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LocalDebuggerCommandArguments>obj/solid_sphere.obj obj/liquid_two_spheres.obj</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>obj/solid_sphere.obj obj/liquid_sphere.obj 40</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>
