@@ -70,6 +70,7 @@ private:
    void update_particle_velocities();
    void apply_collision_to_particles(float dt);
    void update_particle_positions(float dt);
+   void stablize();
 
 	Vec3f trace_rk2(const Vec3f& position, float dt);
 

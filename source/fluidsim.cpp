@@ -236,19 +236,19 @@ void FluidSim::sort_particles() {
       //   cout << "radius = " << debug.radius << endl;
       //}
 
-      if (debug.i < 0 || debug.i >= ni || debug.j < 0 || debug.j >= nj || debug.k < 0 || debug.k >= nk) {
-         cout << "particle " << p << ":" << endl;
-         cout << "pos = " << debug.pos << endl;
-         cout << debug.i << " " << debug.j << " " << debug.k << endl;
-         cout << "vel = " << debug.vel << endl;
-         cout << "vol = " << debug.vol << endl;
-         cout << "radius = " << debug.radius << endl;
-         particles.erase(particles.begin() + p);
-         p--;
-      }
-      else {
+      //if (debug.i < 0 || debug.i >= ni || debug.j < 0 || debug.j >= nj || debug.k < 0 || debug.k >= nk) {
+      //   cout << "particle " << p << ":" << endl;
+      //   cout << "pos = " << debug.pos << endl;
+      //   cout << debug.i << " " << debug.j << " " << debug.k << endl;
+      //   cout << "vel = " << debug.vel << endl;
+      //   cout << "vol = " << debug.vol << endl;
+      //   cout << "radius = " << debug.radius << endl;
+      //   particles.erase(particles.begin() + p);
+      //   p--;
+      //}
+      //else {
          particle_indices(particles[p].i, particles[p].j, particles[p].k)++;
-      }
+      //}
    }
    Particle debug = particles[0];
    sort(particles.begin(), particles.end(), compare_particles);
@@ -581,8 +581,7 @@ void FluidSim::apply_collision_to_particles(float dt) {
       //   cout << "forcey = " << fy(debug.i, debug.j, debug.k) << endl;
       //   cout << "solid phi = " << solid_phi << endl;
       //}
-      int iterations = 0;
-      while (iterations < 10 && solid_phi < particles[p].radius) {   //collision detected
+      if (solid_phi < particles[p].radius) {   //collision detected
          //cout << "collision " << p << endl;
          Vec3f vel = particles[p].vel;
          Vec3f normal;
@@ -603,7 +602,6 @@ void FluidSim::apply_collision_to_particles(float dt) {
 
          pos = particles[p].pos + particles[p].vel * dt;
          solid_phi = interpolate_value(pos/dx, nodal_solid_phi);
-         iterations++;
 
          //if (p == 4041) {
          //   cout << "particle " << p << endl;
@@ -642,6 +640,21 @@ void FluidSim::update_particle_positions(float dt) {
    printf("Finished updating particle positions\n");
 }
 
+//Push particles that are inside the solid shape out
+void FluidSim::stablize() {
+   #pragma omp parallel for
+   for (int p=0; p<particles.size(); ++p) {
+      Particle pt = particles[p];
+      float solid_phi = interpolate_value(pt.pos/dx, nodal_solid_phi);
+      if (solid_phi < pt.radius) {
+         Vec3f normal;
+         interpolate_gradient(normal, pt.pos/dx, nodal_solid_phi);
+         normalize(normal);
+         particles[p].pos += (pt.radius - solid_phi);
+      }
+   }
+}
+
 //The main fluid simulation step
 void FluidSim::advance(float dt, bool first_step) {
    //float t = 0;
@@ -671,6 +684,7 @@ void FluidSim::advance(float dt, bool first_step) {
    update_grid_velocities();
    update_particle_positions(dt);
    sort_particles();
+   stablize();
 }
 
 
