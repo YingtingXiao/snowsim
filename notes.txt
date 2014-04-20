@@ -1,3 +1,14 @@
+2/6/2014
+drift: using velocity to compute deformation
+avanlanche - expands as velocity increases, bumps into itself more, no memory effects
+ideal gas law: T measures energy. as T increases, volume increases
+power-law fluids: viscosity changes according to velocity
+splashy fluids
+snow ball/snow plow - MPM
+avalanche - different, more like sand
+
+
+3/13/2014
 grid node - ?
 J in equation 6? the determinant of Fe
 solve equation 9? conjugate gradient (because it's positive definite and symmetric)
@@ -19,14 +30,37 @@ conserving mass by having mass
 27-64 particles per cell. grid doesnt have to be very high-res
 
 
-QUESTIONS 4/3/2014
-when do we apply external force? after we compute grid forces?
-is sigma the partial derivative of psi at F_Ep?
-initial value for deformation gradient: 3*3 identity matrix?
-satisfy cfl?
-should collision detection use predicted particle positions?
-what if the predicted position still penetrates the solid after we update velocity - add more iterations?
-step size for gradient and derivative? dx/2?
-negative determinant of deformation gradient? restrict singular values to a certain range?
+4/3/2014
+when do we apply external force? after we compute grid forces? after step 3
+is sigma the partial derivative of psi at F_Ep? yes
+initial value for deformation gradient: 3*3 identity matrix? yes
+satisfy cfl? for accuracy, not stability in MPM and FLIP - we don't have to worry about it
+should collision detection use predicted particle positions? yes
+what if the predicted position still penetrates the solid after we update velocity - add more iterations? no. add a stablize step after step 10
+step size for gradient and derivative? dx/2? should be good
+negative determinant of deformation gradient? shouldn't happen
+derivative of psi with respect to Fe: 2 * mu * (Se - I) + lambda * tr(Se - I) * Re <- or I at the end? assume lamdba is 0. Se is corrotated Fe
+equation 9: (I + dt^2 * M^(-1) * K) * V_(n+1) = V*
+K is the derivative of the derivative of psi?
 
-equation 9
+
+4/16/2014
+restrict singular values to a certain range?
+derivative of psi: should it be I at the end? should we multiply it with Fe.transpose? yes
+step 3: x^ = x, why? compute force at the beginning of timestep
+where should grid velocities be stored? does this make a difference?
+is F^(-T) the inverse transpose of F? yes
+why are there J and Je? are they different? J is the det(F)
+phi is the energy while psi is the energy density
+second order derivative: 2 * mu + whatever with R
+beta = 1. timestep small otherwise (10^-5 or 10^-6)
+Cauchy stress: 2 * mu / J * R * (S - I) * Fe^T
+J = det(F)
+
+in the Einstein notation:
+any subscript that's duplicated is summed
+the ordering doesn't matter
+
+one way to do corrotation:
+assume rotation is the same in every timestep
+rotate F first, after getting forces, rotate it back

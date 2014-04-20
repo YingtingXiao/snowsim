@@ -236,16 +236,16 @@ void FluidSim::sort_particles() {
       //   cout << "radius = " << debug.radius << endl;
       //}
 
-      //if (debug.i < 0 || debug.i >= ni || debug.j < 0 || debug.j >= nj || debug.k < 0 || debug.k >= nk) {
-      //   cout << "particle " << p << ":" << endl;
-      //   cout << "pos = " << debug.pos << endl;
-      //   cout << debug.i << " " << debug.j << " " << debug.k << endl;
-      //   cout << "vel = " << debug.vel << endl;
-      //   cout << "vol = " << debug.vol << endl;
-      //   cout << "radius = " << debug.radius << endl;
-      //   particles.erase(particles.begin() + p);
-      //   p--;
-      //}
+      if (debug.i < 0 || debug.i >= ni || debug.j < 0 || debug.j >= nj || debug.k < 0 || debug.k >= nk) {
+         cout << "particle " << p << ":" << endl;
+         cout << "pos = " << debug.pos << endl;
+         cout << debug.i << " " << debug.j << " " << debug.k << endl;
+         cout << "vel = " << debug.vel << endl;
+         cout << "vol = " << debug.vol << endl;
+         cout << "radius = " << debug.radius << endl;
+         //particles.erase(particles.begin() + p);
+         //p--;
+      }
       //else {
          particle_indices(particles[p].i, particles[p].j, particles[p].k)++;
       //}
@@ -361,29 +361,56 @@ void FluidSim::compute_grid_forces(float dt) {
                   //}
                }
 
-               //compute derivative of psi wrt particle's elastic deformation gradient
-               float psi = compute_psi(pt.def_e, pt.def_p, sum);
-               //if (i == 18 && j == 11 && k == 13) {
-               //   cout << "def_e = " << endl;
-               //   cout << pt.def_e << endl;
-               //   cout << "def_p = " << endl;
-               //   cout << pt.def_p << endl;
-               //   cout << "sum = " << endl;
-               //   cout << sum << endl;
-               //   cout << "psi = " << psi;
-               //   cout << endl;
+               ////compute derivative of psi wrt particle's elastic deformation gradient
+               //float psi = compute_psi(pt.def_e, pt.def_p, sum);
+               ////if (i == 18 && j == 11 && k == 13) {
+               ////   cout << "def_e = " << endl;
+               ////   cout << pt.def_e << endl;
+               ////   cout << "def_p = " << endl;
+               ////   cout << pt.def_p << endl;
+               ////   cout << "sum = " << endl;
+               ////   cout << sum << endl;
+               ////   cout << "psi = " << psi;
+               ////   cout << endl;
+               ////}
+               //Eigen::Matrix3f gradient = Eigen::Matrix3f::Zero();
+               //float step = dx/2;
+               //for (int ii=0; ii<3; ++ii) for (int jj=0; jj<3; ++jj) {
+               //   Eigen::Matrix3f def_e = pt.def_e;
+               //   def_e(ii, jj) += step;
+               //   float new_psi = compute_psi(def_e, pt.def_p, sum);
+               //   gradient(jj, ii) = (new_psi - psi) / step;
                //}
-               Eigen::Matrix3f gradient = Eigen::Matrix3f::Zero();
-               float step = dx/2;
-               for (int ii=0; ii<3; ++ii) for (int jj=0; jj<3; ++jj) {
-                  Eigen::Matrix3f def_e = pt.def_e;
-                  def_e(ii, jj) += step;
-                  float new_psi = compute_psi(def_e, pt.def_p, sum);
-                  gradient(jj, ii) = (new_psi - psi) / step;
+
+               //analytically computer derivative of psi wrt particle's elastic deformation gradient
+               //2 * mu * (Se - I) + lamdba * trace(Se - I) * I
+               Eigen::Matrix3f new_def_e = sum * pt.def_e;
+
+               //SVD and polar decomposition of new_def_e
+               Eigen::JacobiSVD<Eigen::Matrix3f> svd(new_def_e, Eigen::ComputeFullU | Eigen::ComputeFullV);
+               Eigen::Matrix3f matrixU = svd.matrixU();
+               Eigen::Matrix3f matrixV = svd.matrixV();
+               Eigen::Vector3f singulars = svd.singularValues();
+               Eigen::Matrix3f sigma = Eigen::Matrix3f::Zero();
+               for (int i=0; i<3; ++i) {
+                  sigma(i, i) = singulars(i);
                }
+               Eigen::Matrix3f matrixR = matrixU * matrixV.transpose();
+               Eigen::Matrix3f matrixS = matrixV * sigma * matrixV.transpose();
+
+               //compute the two functions of plastic deformation gradient
+               float mu = young / (2 * (1 + poisson));
+               float lambda = young * poisson / ((1 + poisson) * (1 - 2 * poisson));
+               float deter_p = pt.def_p.determinant();
+               float exponent = exp(harden * (1 - deter_p));
+               float mu_def_p = mu * exponent;
+               float lambda_def_p = lambda * exponent;
+
+               Eigen::Matrix3f temp = matrixS - Eigen::Matrix3f::Identity();   //so we don't have to recompute it
+               Eigen::Matrix3f gradient = 2 * mu_def_p * temp + lambda_def_p * temp * Eigen::Matrix3f::Identity();
 
                //compute grid force
-               force -= pt.init_vol * gradient * get_weight_gradient(dx, i, j, k, pt.pos);
+               force -= pt.init_vol * gradient * pt.def_e.transpose() * get_weight_gradient(dx, i, j, k, pt.pos);
                //if (i == 18 && j == 11 && k == 13) {
                //   cout << pt.init_vol << endl;
                //   cout << gradient << endl;
@@ -468,7 +495,7 @@ void FluidSim::apply_collision_to_grid() {
             normalize(normal);
             float vn = dot(vel, normal);
             if (vn < 0) {   //don't apply collision if the bodies are separating
-               cout << "collision " << i << " " << j << " " << k << " " << endl;
+               //cout << "collision " << i << " " << j << " " << k << " " << endl;
                Vec3f vt = vel - vn * normal;
                vel = vt + friction * vn * normalized(vt);
                temp_u(i, j, k) = vel[0];
@@ -510,14 +537,14 @@ void FluidSim::update_deform_gradient(float dt) {
       float deter = max(new_def.determinant(), 0.0f);
       particles[p].vol = particles[p].init_vol * deter;
       particles[p].radius = pow(particles[p].vol * 3/4.0f / PI, 1/3.0f);
-      if (p == 4012) {
-         cout << "particle " << p << endl;
-         cout << "vol = " << particles[p].vol << endl;
-         cout << "radius = " << particles[p].radius << endl;
-         cout << "old def_e = " << pt.def_e << endl;
-         cout << "old def_p = " << pt.def_p << endl;
-         cout << "sum = " << sum << endl;
-      }
+      //if (p == 4012) {
+      //   cout << "particle " << p << endl;
+      //   cout << "vol = " << particles[p].vol << endl;
+      //   cout << "radius = " << particles[p].radius << endl;
+      //   cout << "old def_e = " << pt.def_e << endl;
+      //   cout << "old def_p = " << pt.def_p << endl;
+      //   cout << "sum = " << sum << endl;
+      //}
 
       //recompute new elastic and plastic deformation gradient
       Eigen::JacobiSVD<Eigen::Matrix3f> svd(new_def_e, Eigen::ComputeFullU | Eigen::ComputeFullV);
@@ -650,9 +677,10 @@ void FluidSim::stablize() {
          Vec3f normal;
          interpolate_gradient(normal, pt.pos/dx, nodal_solid_phi);
          normalize(normal);
-         particles[p].pos += (pt.radius - solid_phi);
+         particles[p].pos += (pt.radius - solid_phi) * normal;
       }
    }
+   printf("Finished stablization\n");
 }
 
 //The main fluid simulation step
@@ -665,6 +693,27 @@ void FluidSim::advance(float dt, bool first_step) {
    //      substep = dt - t;
    //   printf("Taking substep of size %f (to %0.3f%% of the frame)\n", substep, 100 * (t+substep)/dt);
    //   t+=substep;
+
+   //   if (!first_step) {
+   //      rasterize_particle_data();
+   //   }
+   //   compute_grid_forces(substep);
+   //   ////temporary
+   //   //fx.set_zero();
+   //   //fy.set_zero();
+   //   //fz.set_zero();
+   //   apply_external_force();
+   //   update_temp_velocities(substep);
+   //   apply_collision_to_grid();
+   //   update_deform_gradient(substep);
+   //   update_particle_velocities();
+   //   apply_collision_to_particles(substep);
+   //   update_grid_velocities();
+   //   update_particle_positions(substep);
+   //   sort_particles();
+   //   stablize();
+
+   //   first_step = false;
    //}
 
    if (!first_step) {
