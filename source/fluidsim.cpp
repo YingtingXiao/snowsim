@@ -18,13 +18,14 @@ float get_weight(float dx, int i, int j, int k, Vec3f pos);
 Eigen::Vector3f get_weight_gradient(float dx, int i, int j, int k, Vec3f pos);
 
 //Parameters for computing grid forces
-float compression = 0.0025;   //critical compression
-float stretch = 0.00075;      //critical stretch
-float harden = 10;            //hardening coefficient
-float young = 140000;         //Young's modulus
-float poisson = 0.2;          //Poisson's ratio
-float friction = 0.2;           //dynamic friction
-float alpha = 0.95;           //weight parameter used in updating particle velocities
+float compression = 0.025;   //critical compression
+float stretch = 0.0075;      //critical stretch
+float harden = 10;           //hardening coefficient
+float young = 140000;        //Young's modulus
+float poisson = 0.2;         //Poisson's ratio
+float friction = 0.2;        //dynamic friction
+float alpha = 0.95;          //weight parameter used in updating particle velocities
+float mu, lambda;            //initial Lame parameters (computed from young and poisson)
 
 void FluidSim::initialize(float width, int ni_, int nj_, int nk_) {
    ni = ni_;
@@ -37,7 +38,7 @@ void FluidSim::initialize(float width, int ni_, int nj_, int nk_) {
  
    particle_indices.resize(ni, nj, nk);
    particle_indices.set_zero();
-   particle_mass = 1;   //initial particle mass
+   particle_mass = 0.05;   //initial particle mass
 
    u.set_zero();
    v.set_zero();
@@ -56,6 +57,9 @@ void FluidSim::initialize(float width, int ni_, int nj_, int nk_) {
    fy.set_zero();
    fz.resize(ni, nj, nk);
    fz.set_zero();
+
+   mu = young / (2 * (1 + poisson));
+   lambda = young * poisson / ((1 + poisson) * (1 - 2 * poisson));
 }
 
 void FluidSim::initialize_phi(string filename, Array3f& phi, bool solid) {
@@ -197,11 +201,13 @@ void FluidSim::set_liquid(string filename) {
    //initialize particles
    int seed = 0;
    for(int k = 0; k < nk; ++k) for(int j = 0; j < nj; ++j) for(int i = 0; i < ni; ++i) {
-      for (int r=0; r<2; ++r) for (int s=0; s<2; ++s) for (int t=0; t<2; ++t) {
-         //add a particle in each of the 8 subgrid cells
-         Vec3f pos((i+r/2.0f)*dx,(j+s/2.0f)*dx,(k+t/2.0f)*dx);
+      //for (int r=0; r<2; ++r) for (int s=0; s<2; ++s) for (int t=0; t<2; ++t) {
+      //   //add a particle in each of the 8 subgrid cells
+      //   Vec3f pos((i+r/2.0f)*dx,(j+s/2.0f)*dx,(k+t/2.0f)*dx);
+         Vec3f pos(i*dx, j*dx, k*dx);
          float a = randhashf(seed++); float b = randhashf(seed++); float c = randhashf(seed++);
-         pos += dx/2.0f * Vec3f(a,b,c);
+         //pos += dx/2.0f * Vec3f(a,b,c);
+         pos += dx * Vec3f(a,b,c);
 
          if(interpolate_value(pos/dx, liquid_phi) <= 0) {
             float solid_phi = interpolate_value(pos/dx, nodal_solid_phi);
@@ -210,7 +216,7 @@ void FluidSim::set_liquid(string filename) {
                particles.push_back(Particle(pos, particle_mass));
             }
          }
-      }
+      //}
    }
 
    sort_particles();
@@ -239,7 +245,7 @@ void FluidSim::sort_particles() {
       if (debug.i < 0 || debug.i >= ni || debug.j < 0 || debug.j >= nj || debug.k < 0 || debug.k >= nk) {
          cout << "particle " << p << ":" << endl;
          cout << "pos = " << debug.pos << endl;
-         cout << debug.i << " " << debug.j << " " << debug.k << endl;
+         cout << "index = " << debug.i << " " << debug.j << " " << debug.k << endl;
          cout << "vel = " << debug.vel << endl;
          cout << "vol = " << debug.vol << endl;
          cout << "radius = " << debug.radius << endl;
@@ -272,6 +278,9 @@ void FluidSim::find_particle_indices(int i, int j, int k, int& start, int& end) 
 //Rasterize particles' mass and velocity data to grid
 void FluidSim::rasterize_particle_data() {
    mass.set_zero();
+   u.set_zero();
+   v.set_zero();
+   w.set_zero();
    for(int k = 0; k < nk; ++k) {
       #pragma omp parallel for
       for(int j = 0; j < nj; ++j) for(int i = 0; i < ni; ++i) {
@@ -295,13 +304,13 @@ void FluidSim::rasterize_particle_data() {
                }
             }
          }
-         if (abs(u(i, j, k)) > EPSILON || abs(v(i, j, k)) > EPSILON || abs(w(i, j, k)) > EPSILON) {
-            int debug = 1;
-         }
+         //if (abs(u(i, j, k)) > EPSILON || abs(v(i, j, k)) > EPSILON || abs(w(i, j, k)) > EPSILON) {
+         //   int debug = 1;
+         //}
       }
    }
-   Vec3f debug(u(18, 11, 13), v(18, 11, 13), w(18, 11, 13));
-   float debug1 = mass(18, 11, 13);
+   //Vec3f debug(u(18, 11, 13), v(18, 11, 13), w(18, 11, 13));
+   //float debug1 = mass(18, 11, 13);
    printf("Finished rasterizing particle data to the grid\n");
 }
 
@@ -322,6 +331,11 @@ void FluidSim::compute_particle_vol_dens() {
          int debug1 = 1;
       }
    }
+
+   Particle pt = particles[0];
+   cout << "particle 0 density: " << pt.dens << endl;
+   cout << "cell (" << pt.i << "," << pt.j << "," << pt.k << ") density = " << mass(pt.i, pt.j, pt.k) / pow(dx,3) << endl;
+
    printf("Finished computing particle density and volume\n");
    printf("Particle radius = %f\n", particles[0].radius);
 }
@@ -333,58 +347,47 @@ void FluidSim::compute_grid_forces(float dt) {
       for(int j = 0; j < nj; ++j) for(int i = 0; i < ni; ++i) {
          Eigen::Vector3f force = Eigen::Vector3f::Zero();
 
-         for (int k1=max(0,k-3); k1<=min(k+2,nk-1); ++k1) for (int j1=max(0,j-3); j1<=min(j+2,nj-1); ++j1) for (int i1=max(0,i-3); i1<=min(i+2,ni-1); ++i1) {
+         if (i == 17 && j == 11 && k == 16) {
+            int debug = 1;
+         }
+
+         for (int k1=max(0,k-2); k1<=min(k+2,nk-1); ++k1) for (int j1=max(0,j-2); j1<=min(j+2,nj-1); ++j1) for (int i1=max(0,i-2); i1<=min(i+2,ni-1); ++i1) {
             int start, end;
             find_particle_indices(i1, j1, k1, start, end);
  
             for (int p=start; p<end; ++p) {
                Particle pt = particles[p];
                Eigen::Matrix3f sum = Eigen::Matrix3f::Identity();
-               for(int kk=max(0,pt.k-2); kk<=min(pt.k+3,nk-1); ++kk) for(int jj=max(0,pt.j-2); jj<=min(pt.j+3,nj-1); ++jj) for(int ii=max(0,pt.i-2); ii<=min(pt.i+3,ni-1); ++ii) {
-                  Eigen::Vector3f vel;
-                  vel(0) = u(ii,jj,kk);
-                  vel(1) = v(ii,jj,kk);
-                  vel(2) = w(ii,jj,kk);
-                  Eigen::Vector3f wg = get_weight_gradient(dx, ii, jj, kk, pt.pos);
-                  //if (i == 18 && j == 11 && k == 13) {
-                  //   cout << "particle index = " << pt.i << " " << pt.j << " " << pt.k << endl;
-                  //   cout << "cell index = " << ii << " " << jj << " " << kk << endl;
-                  //   cout << "vel = " << vel << endl;
-                  //   cout << "wg = " << endl;
-                  //   cout << wg;
-                  //   cout << endl;
-                  //}
-                  sum += dt * vel * wg.transpose();
-                  //if (i == 18 && j == 11 && k == 13) {
-                  //   cout << "sum = " << endl;
-                  //   cout << sum << endl;
-                  //}
-               }
-
-               ////compute derivative of psi wrt particle's elastic deformation gradient
-               //float psi = compute_psi(pt.def_e, pt.def_p, sum);
-               ////if (i == 18 && j == 11 && k == 13) {
-               ////   cout << "def_e = " << endl;
-               ////   cout << pt.def_e << endl;
-               ////   cout << "def_p = " << endl;
-               ////   cout << pt.def_p << endl;
-               ////   cout << "sum = " << endl;
-               ////   cout << sum << endl;
-               ////   cout << "psi = " << psi;
-               ////   cout << endl;
-               ////}
-               //Eigen::Matrix3f gradient = Eigen::Matrix3f::Zero();
-               //float step = dx/2;
-               //for (int ii=0; ii<3; ++ii) for (int jj=0; jj<3; ++jj) {
-               //   Eigen::Matrix3f def_e = pt.def_e;
-               //   def_e(ii, jj) += step;
-               //   float new_psi = compute_psi(def_e, pt.def_p, sum);
-               //   gradient(jj, ii) = (new_psi - psi) / step;
+               //for(int kk=max(0,pt.k-2); kk<=min(pt.k+3,nk-1); ++kk) for(int jj=max(0,pt.j-2); jj<=min(pt.j+3,nj-1); ++jj) for(int ii=max(0,pt.i-2); ii<=min(pt.i+3,ni-1); ++ii) {
+               //   Eigen::Vector3f vel;
+               //   vel(0) = u(ii,jj,kk);
+               //   vel(1) = v(ii,jj,kk);
+               //   vel(2) = w(ii,jj,kk);
+               //   Eigen::Vector3f wg = get_weight_gradient(dx, ii, jj, kk, pt.pos);
+               //   //if (i == 18 && j == 11 && k == 13) {
+               //   //   cout << "particle index = " << pt.i << " " << pt.j << " " << pt.k << endl;
+               //   //   cout << "cell index = " << ii << " " << jj << " " << kk << endl;
+               //   //   cout << "vel = " << vel << endl;
+               //   //   cout << "wg = " << endl;
+               //   //   cout << wg;
+               //   //   cout << endl;
+               //   //}
+               //   sum += dt * vel * wg.transpose();
+               //   //if (i == 18 && j == 11 && k == 13) {
+               //   //   cout << "sum = " << endl;
+               //   //   cout << sum << endl;
+               //   //}
                //}
 
                //analytically computer derivative of psi wrt particle's elastic deformation gradient
                //2 * mu * (Se - I) + lamdba * trace(Se - I) * I
                Eigen::Matrix3f new_def_e = sum * pt.def_e;
+
+               if (i == 17 && j == 11 && k == 16 && p == 23) {
+                  int debug = 1;
+               }
+
+               //Eigen::Matrix3f new_def_e = pt.def_e;
 
                //SVD and polar decomposition of new_def_e
                Eigen::JacobiSVD<Eigen::Matrix3f> svd(new_def_e, Eigen::ComputeFullU | Eigen::ComputeFullV);
@@ -392,39 +395,54 @@ void FluidSim::compute_grid_forces(float dt) {
                Eigen::Matrix3f matrixV = svd.matrixV();
                Eigen::Vector3f singulars = svd.singularValues();
                Eigen::Matrix3f sigma = Eigen::Matrix3f::Zero();
-               for (int i=0; i<3; ++i) {
-                  sigma(i, i) = singulars(i);
+               for (int ss=0; ss<3; ++ss) {
+                  sigma(ss, ss) = singulars(ss);
                }
                Eigen::Matrix3f matrixR = matrixU * matrixV.transpose();
                Eigen::Matrix3f matrixS = matrixV * sigma * matrixV.transpose();
 
                //compute the two functions of plastic deformation gradient
-               float mu = young / (2 * (1 + poisson));
-               float lambda = young * poisson / ((1 + poisson) * (1 - 2 * poisson));
                float deter_p = pt.def_p.determinant();
                float exponent = exp(harden * (1 - deter_p));
                float mu_def_p = mu * exponent;
                float lambda_def_p = lambda * exponent;
 
+               float deter_e = new_def_e.determinant();
+
                Eigen::Matrix3f temp = matrixS - Eigen::Matrix3f::Identity();   //so we don't have to recompute it
-               Eigen::Matrix3f gradient = 2 * mu_def_p * temp + lambda_def_p * temp * Eigen::Matrix3f::Identity();
+               //Eigen::Matrix3f gradient = 2 * mu_def_p * temp + lambda_def_p * temp.trace() * Eigen::Matrix3f::Identity();
+               Eigen::Matrix3f gradient = 2 * mu_def_p * (new_def_e - matrixR);// + lambda_def_p * (deter_e - 1) * deter_e * new_def_e.transpose().inverse();
+
+               //for new_def_e
+               gradient = sum * gradient;
 
                //compute grid force
+               Eigen::Vector3f oldForce = force;
                force -= pt.init_vol * gradient * pt.def_e.transpose() * get_weight_gradient(dx, i, j, k, pt.pos);
-               //if (i == 18 && j == 11 && k == 13) {
-               //   cout << pt.init_vol << endl;
-               //   cout << gradient << endl;
-               //   cout << get_weight_gradient(dx, i, j, k, pt.pos);
-               //   cout << endl;
+
+               Eigen::Matrix3f trans = pt.def_e.transpose();
+               Eigen::Matrix3f temp1 = gradient * trans;
+               Eigen::Vector3f grad = get_weight_gradient(dx, i, j, k, pt.pos);
+               Eigen::Vector3f f = temp1 * grad;
+               int debug = 1;
+               //if (i == 16 && j == 13 && k == 15) {
+               //   if (abs(force(1) - oldForce(1)) < 20) {
+               //      cout << "vel(16, 13, 15)" << endl;
+               //      cout << "particle " << p << endl;
+               //      cout << "prev particle position = " << pt.pos - dt * pt.vel << endl;
+               //      cout << "deter_def_p = " << deter_p << endl;
+               //      cout << "force = " << endl << force << endl;
+               //   }
                //}
             }
          }
          fx(i, j, k) = force(0);
          fy(i, j, k) = force(1);
          fz(i, j, k) = force(2);
-         if (i == 18 && j == 11 && k == 13) {
-            cout << fx(i, j, k) << " " << fy(i, j, k) << " " << fz(i, j, k) << endl;
-            cout << mass(i, j, k) << endl;
+         if (i == 16 && j == 13 && k == 15) {
+            cout << "grid (" << i << ", " << j << ", " << k << ")" << endl;
+            cout << "vel = (" << u(i, j, k) << ", " << v(i, j, k) << ", " << w(i, j, k) << ")" << endl;
+            cout << "force = (" << fx(i, j, k) << ", " << fy(i, j, k) << ", " << fz(i, j, k) << ")" << endl;
          }
       }
       printf(" Finished computing forces for layer %d\n", k);
@@ -472,6 +490,9 @@ void FluidSim::apply_external_force() {
 //Update temporary velocities
 //TODO: use semi-implicit integration
 void FluidSim::update_temp_velocities(float dt) {
+   cout << "vel(16, 13, 15) = (" << u(16,13,15) << ", " << v(16,13,15) << ", " << w(16,13,15) << ")" << endl;
+   cout << "f(16, 13, 15) = (" << fx(16,13,15) << ", " << fy(16,13,15) << ", " << fz(16,13,15) << ")" << endl;
+   cout << "mass(16, 13, 15) = " << mass(16, 13, 15) << endl;
    #pragma omp parallel for
    for(int k = 0; k < nk; ++k) for(int j = 0; j < nj; ++j) for(int i = 0; i < ni; ++i) {
       if (mass(i, j, k) > EPSILON) {
@@ -480,6 +501,7 @@ void FluidSim::update_temp_velocities(float dt) {
          temp_w(i, j, k) = w(i, j, k) + fz(i, j, k) * dt / mass(i, j, k);
       }
    }
+   cout << "new_vel(16, 13, 15) = (" << temp_u(16,13,15) << ", " << temp_v(16,13,15) << ", " << temp_w(16,13,15) << ")" << endl;
    printf("Finished updating temporary velocities\n");
 }
 
@@ -523,18 +545,33 @@ void FluidSim::update_deform_gradient(float dt) {
    for (int p=0; p<particles.size(); ++p) {
       Particle pt = particles[p];
       Eigen::Matrix3f sum = Eigen::Matrix3f::Identity();
-      for(int k=max(0,pt.k-2); k<=min(pt.k+3,nk-1); ++k) for(int j=max(0,pt.j-2); j<=min(pt.j+3,nj-1); ++j) for(int i=max(0,pt.i-2); i<=min(pt.i+3,ni-1); ++i) {
+      for(int k=max(0,pt.k-2); k<=min(pt.k+2,nk-1); ++k) for(int j=max(0,pt.j-2); j<=min(pt.j+2,nj-1); ++j) for(int i=max(0,pt.i-2); i<=min(pt.i+2,ni-1); ++i) {
          Eigen::Vector3f v_grid;
          v_grid(0) = temp_u(i, j, k);
          v_grid(1) = temp_v(i, j, k);
          v_grid(2) = temp_w(i, j, k);
-         sum += dt * v_grid * get_weight_gradient(dx, i, j, k, pt.pos).transpose();
+         Eigen::Vector3f w = get_weight_gradient(dx, i, j, k, pt.pos);
+         sum += dt * v_grid * w.transpose();
+         //if (p == 21) {
+         //   cout << "(" << i << ", " << j << ", " << k << ")" << endl;
+         //   cout << "grid velocity = \n" << v_grid << endl;
+         //   cout << "weight gradient = \n" << w << endl; 
+         //}
       }
+
+      //if (p == 19) {
+      //   cout << "particle 74" << endl;
+      //   cout << "old def_e" << endl;
+      //   cout << pt.def_e << endl;
+      //   cout << "old def_p" << endl;
+      //   cout << pt.def_p << endl;
+      //   cout << sum << endl;
+      //}
 
       //compute new total deformation gradient and particle volume
       Eigen::Matrix3f new_def_e = sum * pt.def_e;
       Eigen::Matrix3f new_def = new_def_e * pt.def_p;
-      float deter = max(new_def.determinant(), 0.0f);
+      float deter = new_def.determinant();
       particles[p].vol = particles[p].init_vol * deter;
       particles[p].radius = pow(particles[p].vol * 3/4.0f / PI, 1/3.0f);
       //if (p == 4012) {
@@ -552,11 +589,24 @@ void FluidSim::update_deform_gradient(float dt) {
       Eigen::Matrix3f matrixV = svd.matrixV();
       Eigen::Vector3f singulars = svd.singularValues();
       Eigen::Matrix3f matrixS = Eigen::Matrix3f::Zero();
-      for (int i=0; i<3; ++i) {
-         matrixS(i, i) = clamp(singulars(i), 1 - compression, 1 + stretch);
+      for (int s=0; s<3; ++s) {
+         matrixS(s, s) = clamp(singulars(s), 1 - compression, 1 + stretch);
       }
       particles[p].def_e = matrixU * matrixS * matrixV.transpose();
       particles[p].def_p = matrixV * matrixS.inverse() * matrixU.transpose() * new_def;
+
+      //if (p == 21) {
+      //   cout << "particle " << p << endl;
+      //   cout << "old def_p determinant = " << pt.def_p.determinant() << endl;
+      //   cout << "def_p determinant = " << particles[p].def_p.determinant() << endl;
+      //   cout << "sum = " << endl << sum << endl;
+      //}
+
+      //if (p == 74) {
+      //   cout << "particle 74" << endl;
+      //   cout << "new def_p" << endl;
+      //   cout << particles[p].def_p << endl;
+      //}
    }
    printf("Finished updating deformation gradient\n");
 }
@@ -584,10 +634,10 @@ void FluidSim::update_particle_velocities() {
          //}
       } 
       particles[p].vel = (1 - alpha) * v_pic + alpha * v_flip;
-      if (p == 0) {
-         cout << "particle " << p << endl;
-         cout << "vel = " << particles[p].vel << endl;
-      }
+      //if (p == 0) {
+      //   cout << "particle " << p << endl;
+      //   cout << "vel = " << particles[p].vel << endl;
+      //}
    }
    printf("Finished updating particle velocities\n");
 }
@@ -626,9 +676,6 @@ void FluidSim::apply_collision_to_particles(float dt) {
             //}
             particles[p].vel = vel;
          }
-
-         pos = particles[p].pos + particles[p].vel * dt;
-         solid_phi = interpolate_value(pos/dx, nodal_solid_phi);
 
          //if (p == 4041) {
          //   cout << "particle " << p << endl;
@@ -730,10 +777,10 @@ void FluidSim::advance(float dt, bool first_step) {
    update_deform_gradient(dt);
    update_particle_velocities();
    apply_collision_to_particles(dt);
-   update_grid_velocities();
+   //update_grid_velocities();
    update_particle_positions(dt);
    sort_particles();
-   stablize();
+   //stablize();
 }
 
 
@@ -804,15 +851,36 @@ float get_weight(float dx, int i, int j, int k, Vec3f pos) {
    return Nx * Ny * Nz;
 }
 
+float get_derivative_of_N(float x) {
+   if (x >= 0 && x < 1) {
+      return 1.5 * pow(x, 2) - 2 * x;
+   } else if (x >= 1 && x < 2) {
+      return -0.5 * pow(x, 2) + 2 * x - 2;
+   } else if (x < 0 && x > -1) {
+      return -1.5 * pow(x, 2) - 2 * x;
+   } else if (x <= -1 && x > -2) {
+      return 0.5 * pow(x, 2) + 2 * x + 2;
+   } else {
+      return 0;
+   }
+}
+
 Eigen::Vector3f get_weight_gradient(float dx, int i, int j, int k, Vec3f pos) {
-   float step = dx/2;
-   float weight = get_weight(dx, i, j, k, pos);
-   float gx = get_weight(dx, i, j, k, pos+Vec3f(step,0,0)) - weight;
-   float gy = get_weight(dx, i, j, k, pos+Vec3f(0,step,0)) - weight;
-   float gz = get_weight(dx, i, j, k, pos+Vec3f(0,0,step)) - weight;
+   float px = pos[0]/dx - i;
+   float py = pos[1]/dx - j;
+   float pz = pos[2]/dx - k;
+
+   float Nx = get_weight_1d(px);
+   float Ny = get_weight_1d(py);
+   float Nz = get_weight_1d(pz);
+
+   float gx = get_derivative_of_N(px);
+   float gy = get_derivative_of_N(py);
+   float gz = get_derivative_of_N(pz);
+
    Eigen::Vector3f gradient;
-   gradient(0) = gx/step;
-   gradient(1) = gy/step;
-   gradient(2) = gz/step;
+   gradient(0) = 1/dx * Ny * Nz * gx;
+   gradient(1) = 1/dx * Nx * Nz * gy;
+   gradient(2) = 1/dx * Nx * Ny * gz;
    return gradient;
 }

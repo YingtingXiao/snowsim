@@ -64,3 +64,6 @@ the ordering doesn't matter
 one way to do corrotation:
 assume rotation is the same in every timestep
 rotate F first, after getting forces, rotate it back
+
+delta_ij: Kronecker delta
+circled x: Kronecker product, non-commutative

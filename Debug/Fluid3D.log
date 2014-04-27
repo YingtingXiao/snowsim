@@ -1,14 +1,21 @@
-﻿Build started 4/3/2014 10:43:41 AM.
+﻿Build started 4/27/2014 6:02:53 PM.
      1>Project "C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Fluid3D.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
-         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /Iglew/include /ZI /nologo /W1 /WX- /Od /Oy- /D USE_AMD_BLAS /D WIN32 /D _CRT_SECURE_NO_DEPRECATE /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /openmp /Fo"Debug\\" /Fd"Debug\vc110.pdb" /Gd /TP /analyze- /errorReport:prompt source\fluidsim.cpp source\main.cpp
+         C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\CL.exe /c /Iglew/include /ZI /nologo /W1 /WX- /Od /Oy- /D USE_AMD_BLAS /D WIN32 /D _CRT_SECURE_NO_DEPRECATE /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /openmp /Fo"Debug\\" /Fd"Debug\vc110.pdb" /Gd /TP /analyze- /errorReport:prompt source\fluidsim.cpp
          fluidsim.cpp
-     1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\fluidsim.cpp(95): warning C4129: ' ' : unrecognized character escape sequence
-     1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\fluidsim.cpp(96): warning C4129: ' ' : unrecognized character escape sequence
-     1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\fluidsim.cpp(98): warning C4129: ' ' : unrecognized character escape sequence
+     1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\fluidsim.cpp(99): warning C4129: ' ' : unrecognized character escape sequence
      1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\fluidsim.cpp(100): warning C4129: ' ' : unrecognized character escape sequence
-         main.cpp
-         Generating Code...
+     1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\fluidsim.cpp(102): warning C4129: ' ' : unrecognized character escape sequence
+     1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\fluidsim.cpp(104): warning C4129: ' ' : unrecognized character escape sequence
+     1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\fluidsim.cpp(421): warning C4258: 'i' : definition from the for loop is ignored; the definition from the enclosing scope is used
+                 c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\fluidsim.cpp(398) : definition of 'i' ignored
+                 c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\fluidsim.cpp(347) : definition of 'i' used
+     1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\fluidsim.cpp(425): warning C4258: 'i' : definition from the for loop is ignored; the definition from the enclosing scope is used
+                 c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\fluidsim.cpp(398) : definition of 'i' ignored
+                 c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\fluidsim.cpp(347) : definition of 'i' used
+     1>c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\fluidsim.cpp(428): warning C4258: 'i' : definition from the for loop is ignored; the definition from the enclosing scope is used
+                 c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\fluidsim.cpp(398) : definition of 'i' ignored
+                 c:\users\lucy\documents\school\2014spring\senior design\snowsim\source\fluidsim.cpp(347) : definition of 'i' used
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Debug\Fluid3D.exe" /NOLOGO /LIBPATH:glew/lib glew32.lib opengl32.lib glu32.lib glut32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Debug\Fluid3D.pdb" /MAP /TLBID:1 /DYNAMICBASE:NO /IMPLIB:"C:\Users\lucy\Documents\School\2014spring\Senior Design\snowsim\Debug\Fluid3D.lib" /MACHINE:X86 /SAFESEH:NO Debug\fluidsim.obj
          Debug\gluvi.obj
@@ -24,4 +31,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:03.95
+Time Elapsed 00:00:03.14

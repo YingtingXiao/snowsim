@@ -30,7 +30,6 @@ bool filming = false;
 bool running = true;
 std::vector<Vec3f> particle_positions;
 float particle_radius;
-string frame_number="frame 0";
 obj* solidBoundary = new obj();
 
 float sphere_phi(const Vec3f& position, const Vec3f& centre, float radius) {
@@ -49,6 +48,7 @@ float liquid_phi(const Vec3f& position) {
 }
 
 void simulate_frame(int frame);
+void save_image(int frame);
 void export_particles(string path, int frame, const std::vector<Particle>& particles);
 
 //Display fluid
@@ -62,17 +62,48 @@ void set_view(Gluvi::Target3D &cam)
 
 void set_lights_and_material(int object)
 {
-   //Enable blending
-   glEnable (GL_BLEND);
-   glEnable(GL_ALPHA_TEST);
-   glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   //---Draw translucent spheres---//
+   ////Enable blending
+   //glEnable (GL_BLEND);
+   //glEnable(GL_ALPHA_TEST);
+   //glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-   glEnable(GL_DEPTH_TEST);
-   glDepthFunc(GL_LEQUAL);
-   glDisable(GL_LIGHTING);
-   glShadeModel(GL_FLAT);
+   //glEnable(GL_DEPTH_TEST);
+   //glDepthFunc(GL_LEQUAL);
+   //glDisable(GL_LIGHTING);
+   //glShadeModel(GL_FLAT);
 
-   glColor4f(.4, .4, .7, .3);
+   //glColor4f(.4, .4, .7, .3);
+
+   //---Draw blinn spheres---//
+   glEnable(GL_LIGHTING);
+   GLfloat global_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};
+   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, global_ambient);
+   glShadeModel(GL_SMOOTH);
+
+   //Light #1
+   GLfloat color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+   GLfloat position[3] = {1.0f, 1.0f, 1.0f};
+   glLightfv(GL_LIGHT0, GL_SPECULAR, color);
+   glLightfv(GL_LIGHT0, GL_DIFFUSE, color);
+   glLightfv(GL_LIGHT0, GL_POSITION, position);
+
+   //Light #2
+   GLfloat color2[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+   GLfloat position2[3] = {-1.0f, -1.0f, 1.0f};
+   glLightfv(GL_LIGHT1, GL_SPECULAR, color2);
+   glLightfv(GL_LIGHT1, GL_DIFFUSE, color2);
+   glLightfv(GL_LIGHT1, GL_POSITION, position2);
+
+   GLfloat obj_color[4] = {.2, .3, .7};
+   glMaterialfv (GL_FRONT, GL_AMBIENT, obj_color);
+   glMaterialfv (GL_FRONT, GL_DIFFUSE, obj_color);
+
+   GLfloat specular[4] = {.4, .2, .8};
+   glMaterialf (GL_FRONT, GL_SHININESS, 32);
+   glMaterialfv (GL_FRONT, GL_SPECULAR, specular);
+   glEnable(GL_LIGHT0);
+   glEnable(GL_LIGHT1);
 }
 
 void timer(int value)
@@ -276,7 +307,13 @@ void simulate_frame(int frame) {
    //printf("Exporting particle data\n");
    //export_particles(outpath, frame, sim.particles, sim.particle_radius);
 
-   //Save an image
+   //Save an image every 10 frames
+   if (frame % 10 == 1) {
+      save_image(frame/10);
+   }
+}
+
+void save_image(int frame) {
    int recordWidth = 720;
    int recordHeight = 480;
    unsigned char* bitmapData = new unsigned char[3 * recordWidth * recordHeight];
