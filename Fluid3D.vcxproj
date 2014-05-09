@@ -86,9 +86,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="pcgsolver\blas_wrapper.h" />
-    <ClInclude Include="pcgsolver\pcg_solver.h" />
-    <ClInclude Include="pcgsolver\sparse_matrix.h" />
     <ClInclude Include="source\array1.h" />
     <ClInclude Include="source\array2.h" />
     <ClInclude Include="source\array2_utils.h" />
@@ -100,9 +97,13 @@
     <ClInclude Include="source\hashtable.h" />
     <ClInclude Include="source\levelset_util.h" />
     <ClInclude Include="source\makelevelset3.h" />
+    <ClInclude Include="source\marching_cube.h" />
     <ClInclude Include="source\obj.h" />
     <ClInclude Include="source\objloader.h" />
     <ClInclude Include="source\particle.h" />
+    <ClInclude Include="source\pcgsolver\blas_wrapper.h" />
+    <ClInclude Include="source\pcgsolver\pcg_solver.h" />
+    <ClInclude Include="source\pcgsolver\sparse_matrix.h" />
     <ClInclude Include="source\stb_image.h" />
     <ClInclude Include="source\stb_image_write.h" />
     <ClInclude Include="source\util.h" />

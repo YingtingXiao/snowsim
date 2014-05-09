@@ -9,24 +9,12 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
-    <Filter Include="Header Files\pcgsolver">
-      <UniqueIdentifier>{2089b783-e49f-4a7b-93dc-89ae3d2f9afd}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="pcgsolver\blas_wrapper.h">
-      <Filter>Header Files\pcgsolver</Filter>
-    </ClInclude>
-    <ClInclude Include="pcgsolver\pcg_solver.h">
-      <Filter>Header Files\pcgsolver</Filter>
-    </ClInclude>
-    <ClInclude Include="pcgsolver\sparse_matrix.h">
-      <Filter>Header Files\pcgsolver</Filter>
-    </ClInclude>
     <ClInclude Include="source\array1.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -79,6 +67,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="source\particle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\marching_cube.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\pcgsolver\blas_wrapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\pcgsolver\pcg_solver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\pcgsolver\sparse_matrix.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

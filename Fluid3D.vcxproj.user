@@ -5,7 +5,7 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LocalDebuggerCommandArguments>obj/solid_sphere.obj obj/liquid_sphere.obj 40</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>obj/solid_box.obj obj/liquid_bunny.obj 80</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

@@ -2,8 +2,6 @@
 
 #include "array3_utils.h"
 #include "levelset_util.h"
-#include "pcgsolver/sparse_matrix.h"
-#include "pcgsolver/pcg_solver.h"
 
 #include <fstream>
 #include <iostream>
@@ -11,6 +9,7 @@
 #include <string>
 
 #include "makelevelset3.h"
+#include "marching_cube.h"
 
 #define EPSILON 0.000001f
 
@@ -20,12 +19,13 @@ Eigen::Vector3f get_weight_gradient(float dx, int i, int j, int k, Vec3f pos);
 //Parameters for computing grid forces
 float compression = 0.025;   //critical compression
 float stretch = 0.0075;      //critical stretch
-float harden = 10;           //hardening coefficient
+float harden = 20;           //hardening coefficient
 float young = 140000;        //Young's modulus
 float poisson = 0.2;         //Poisson's ratio
-float friction = 0.2;        //dynamic friction
+float friction = 0;          //dynamic friction
 float alpha = 0.95;          //weight parameter used in updating particle velocities
 float mu, lambda;            //initial Lame parameters (computed from young and poisson)
+float beta = 0.5;            //for semi-implicit update
 
 void FluidSim::initialize(float width, int ni_, int nj_, int nk_) {
    ni = ni_;
@@ -57,6 +57,10 @@ void FluidSim::initialize(float width, int ni_, int nj_, int nk_) {
    fy.set_zero();
    fz.resize(ni, nj, nk);
    fz.set_zero();
+
+   V_s.assign(3*ni*nj*nk, 0);
+   V_new.assign(3*ni*nj*nk, 0);
+   K.resize(3*ni*nj*nk);
 
    mu = young / (2 * (1 + poisson));
    lambda = young * poisson / ((1 + poisson) * (1 - 2 * poisson));
@@ -201,27 +205,182 @@ void FluidSim::set_liquid(string filename) {
    //initialize particles
    int seed = 0;
    for(int k = 0; k < nk; ++k) for(int j = 0; j < nj; ++j) for(int i = 0; i < ni; ++i) {
-      //for (int r=0; r<2; ++r) for (int s=0; s<2; ++s) for (int t=0; t<2; ++t) {
-      //   //add a particle in each of the 8 subgrid cells
-      //   Vec3f pos((i+r/2.0f)*dx,(j+s/2.0f)*dx,(k+t/2.0f)*dx);
-         Vec3f pos(i*dx, j*dx, k*dx);
+      for (int r=0; r<2; ++r) for (int s=0; s<2; ++s) for (int t=0; t<2; ++t) {
+         //add a particle in each of the 8 subgrid cells
+         Vec3f pos((i+r/2.0f)*dx,(j+s/2.0f)*dx,(k+t/2.0f)*dx);
+         //Vec3f pos(i*dx, j*dx, k*dx);
          float a = randhashf(seed++); float b = randhashf(seed++); float c = randhashf(seed++);
-         //pos += dx/2.0f * Vec3f(a,b,c);
-         pos += dx * Vec3f(a,b,c);
+         pos += dx/2.0f * Vec3f(a,b,c);
+         //pos += dx * Vec3f(a,b,c);
 
          if(interpolate_value(pos/dx, liquid_phi) <= 0) {
             float solid_phi = interpolate_value(pos/dx, nodal_solid_phi);
             if(solid_phi >= 0) {
-
-               particles.push_back(Particle(pos, particle_mass));
+               Particle pt(pos, particle_mass);
+               pt.vel = Vec3f(0, -1, 0);
+               particles.push_back(pt);
             }
          }
-      //}
+      }
    }
 
    sort_particles();
    rasterize_particle_data();
    compute_particle_vol_dens();
+}
+
+//Grab liquid phi from particles
+void FluidSim::compute_phi() {
+   liquid_phi.assign(3*dx);
+   for(unsigned int p = 0; p < particles.size(); ++p) {
+      Particle pt = particles[p];
+      for(int k = max(0,pt.k-1); k <= min(pt.k+1,nk-1); ++k) {
+         for(int j = max(0,pt.j-1); j <= min(pt.j+1,nj-1); ++j) {
+            for(int i = max(0,pt.i-1); i <= min(pt.i+1,ni-1); ++i) {
+               Vec3f sample_pos((i+0.5f)*dx, (j+0.5f)*dx, (k+0.5f)*dx);
+               float test_val = dist(sample_pos, pt.pos) - 0.5 * dx;
+               if(test_val < liquid_phi(i,j,k))
+                  liquid_phi(i,j,k) = test_val;
+            }
+         }
+      }
+   }
+   
+   ////extend phi slightly into solids (this is a simple, naive approach, but works reasonably well)
+   //Array3f phi_temp = liquid_phi;
+   //for(int k = 0; k < nk; ++k) {
+   //   for(int j = 0; j < nj; ++j) {
+   //      for(int i = 0; i < ni; ++i) {
+   //         if(liquid_phi(i,j,k) < 0.5*dx) {
+   //            float solid_phi_val = 0.125f*(nodal_solid_phi(i,j,k) + nodal_solid_phi(i+1,j,k) + nodal_solid_phi(i,j+1,k) + nodal_solid_phi(i+1,j+1,k)
+   //               + nodal_solid_phi(i,j,k+1) + nodal_solid_phi(i+1,j,k+1) + nodal_solid_phi(i,j+1,k+1) + nodal_solid_phi(i+1,j+1,k+1));
+   //            if(solid_phi_val < 0)
+   //               phi_temp(i,j,k) = -0.5f*dx;
+   //         }
+   //      }
+   //   }
+   //}
+   //liquid_phi = phi_temp;
+}
+
+void FluidSim::marching_cube(vector<Vec3f>& position, vector<Vec3f>& normal, vector<unsigned int>& indices){
+	unsigned int triangleCount(0);
+	float iso_value(0.00f);// the value for surface, by default is 0.0f
+	// Loop over all cells in the grid.
+	// for a current cell ijk:
+	for(int k = 0; k < nk; ++k) {
+      for(int j = 0; j < nj; ++j) {
+         for(int i = 0; i < ni; ++i) {
+			{
+				Vec3f v_0(i*dx,j*dx,k*dx);
+				Vec3f v_1((i+1)*dx,j*dx,k*dx);
+				Vec3f v_2((i+1)*dx,(j+1)*dx,k*dx);
+				Vec3f v_3(i*dx,(j+1)*dx,k*dx);
+				Vec3f v_4(i*dx,j*dx,(k+1)*dx);
+				Vec3f v_5((i+1)*dx,j*dx,(k+1)*dx);
+				Vec3f v_6((i+1)*dx,(j+1)*dx,(k+1)*dx);
+				Vec3f v_7(i*dx,(j+1)*dx,(k+1)*dx);
+
+				std::vector<Vec3f> v;
+				v.push_back(v_0);v.push_back(v_1);v.push_back(v_2);v.push_back(v_3);
+				v.push_back(v_4);v.push_back(v_5);v.push_back(v_6);v.push_back(v_7);
+				//1. sample values of 8 corners for current cell.
+				float cornerValue[8];
+				cornerValue[0] = interpolate_value(v_0/dx,liquid_phi);
+				cornerValue[1] = interpolate_value(v_1/dx,liquid_phi);
+				cornerValue[2] = interpolate_value(v_2/dx,liquid_phi);
+				cornerValue[3] = interpolate_value(v_3/dx,liquid_phi);
+				cornerValue[4] = interpolate_value(v_4/dx,liquid_phi);
+				cornerValue[5] = interpolate_value(v_5/dx,liquid_phi);
+				cornerValue[6] = interpolate_value(v_6/dx,liquid_phi);
+				cornerValue[7] = interpolate_value(v_7/dx,liquid_phi);
+				unsigned int valueMask = 0;//8 bit for indicating polarity for 8 corner.
+
+				for(int current_corner  = 0;current_corner<8;current_corner++)
+				{
+					float corner_value = cornerValue[current_corner];
+					
+					cornerValue[current_corner] = corner_value - iso_value;
+
+					if(cornerValue[current_corner] <= 0)
+						valueMask |= (1 << current_corner);// bit operation to mark corresponding corner.
+				}
+				//if(valueMask>0)
+				//std::cout<<"valueMask:"<<valueMask<<endl;
+				//2. get vertex position and normal for intersection point.
+				int edgeFlag = aiCubeEdgeFlags[valueMask];// flag for indicating which edges is intersecting
+				// not intersecting at all.
+				if(edgeFlag == 0)
+					continue;
+				// 12 correspond to 12 edges. e.g. a intersection vertex on edge 6 would be stored in edgeVertex[6] and edgeNormal[6]
+				Vec3f edgeVertex[12];
+				Vec3f edgeNormal[12];
+				for(int edge_id = 0;edge_id<12;edge_id++)
+				{
+					// if edge is intersecting with the surface.
+					// use bit-wise operation to find out. intersection information is stored in edgeFlag.
+					{
+						// get the two end point ids for current edge.
+						unsigned int v1 = a2iEdgeConnection[edge_id][0];
+						unsigned int v2 = a2iEdgeConnection[edge_id][1];
+						// fraction is the intersection point between v1 and v2.
+						float fraction =  cornerValue[v1]/ (cornerValue[v1] - cornerValue[v2]);
+						// edgeDirection is the unit vector of the direction of current edge in world space.
+						Vec3f edgeDirection = Vec3f(a2fEdgeDirection[edge_id][0],a2fEdgeDirection[edge_id][1],a2fEdgeDirection[edge_id][2]);
+						// get edge direction from a2fEdgeDirection[edge_id]
+
+						Vec3f pos;
+						unsigned int i1, j1, k1;
+						// i, j, k is the index for the corner with id 0;
+						// i1, j1, k1 is the index for the corner with id v1;
+						
+						// computer i1, j1, k1;
+						pos = v[v1];
+                        // compute position of corner i1, j1, k1 in world space;
+						pos += fraction * dx * edgeDirection;
+
+						edgeVertex[edge_id] = pos;
+                        
+                  // compute normal for current vertex.
+                  // works only for level set field, since gradient of level set is the normal.
+                  Vec3f norm;
+						interpolate_gradient(norm,pos/dx,liquid_phi);
+                  // compute normal using the gradient.
+                  // take samples from the gradient.
+						if(mag(norm)>0)
+							normalize(norm);
+                  edgeNormal[edge_id] = norm;
+					}
+				}
+
+				//3. generate triangles from the vertices and normal.
+				// triangle information is stored in a2iTriangleConnectionTable[valueMask]
+				int * triangleTablePtr = a2iTriangleConnectionTable[valueMask];
+				for(unsigned int num = 0; num < 5; ++num)
+				{// up to 5 triangles
+					if(*(triangleTablePtr + 3 * num) < 0)
+						break;
+
+					for(unsigned int idx = 0; idx < 3; ++idx)
+					{
+						// vertex id is used for extracting position and normal from edgeVertex and edgeNormal array.
+						int vertex_idx = *(triangleTablePtr + 3 * num + idx);
+
+						Vec3f p = edgeVertex[vertex_idx];
+
+						position.push_back(p);
+
+                  Vec3f n = edgeNormal[vertex_idx];
+						normal.push_back(n);
+						indices.push_back(3 * triangleCount + idx);
+					}
+
+					triangleCount++;
+				}
+			}
+		}
+	  }
+	}
 }
 
 //Compare function for sorting
@@ -347,9 +506,9 @@ void FluidSim::compute_grid_forces(float dt) {
       for(int j = 0; j < nj; ++j) for(int i = 0; i < ni; ++i) {
          Eigen::Vector3f force = Eigen::Vector3f::Zero();
 
-         if (i == 17 && j == 11 && k == 16) {
-            int debug = 1;
-         }
+         //if (i == 17 && j == 11 && k == 16) {
+         //   int debug = 1;
+         //}
 
          for (int k1=max(0,k-2); k1<=min(k+2,nk-1); ++k1) for (int j1=max(0,j-2); j1<=min(j+2,nj-1); ++j1) for (int i1=max(0,i-2); i1<=min(i+2,ni-1); ++i1) {
             int start, end;
@@ -358,36 +517,33 @@ void FluidSim::compute_grid_forces(float dt) {
             for (int p=start; p<end; ++p) {
                Particle pt = particles[p];
                Eigen::Matrix3f sum = Eigen::Matrix3f::Identity();
-               //for(int kk=max(0,pt.k-2); kk<=min(pt.k+3,nk-1); ++kk) for(int jj=max(0,pt.j-2); jj<=min(pt.j+3,nj-1); ++jj) for(int ii=max(0,pt.i-2); ii<=min(pt.i+3,ni-1); ++ii) {
-               //   Eigen::Vector3f vel;
-               //   vel(0) = u(ii,jj,kk);
-               //   vel(1) = v(ii,jj,kk);
-               //   vel(2) = w(ii,jj,kk);
-               //   Eigen::Vector3f wg = get_weight_gradient(dx, ii, jj, kk, pt.pos);
-               //   //if (i == 18 && j == 11 && k == 13) {
-               //   //   cout << "particle index = " << pt.i << " " << pt.j << " " << pt.k << endl;
-               //   //   cout << "cell index = " << ii << " " << jj << " " << kk << endl;
-               //   //   cout << "vel = " << vel << endl;
-               //   //   cout << "wg = " << endl;
-               //   //   cout << wg;
-               //   //   cout << endl;
-               //   //}
-               //   sum += dt * vel * wg.transpose();
-               //   //if (i == 18 && j == 11 && k == 13) {
-               //   //   cout << "sum = " << endl;
-               //   //   cout << sum << endl;
-               //   //}
-               //}
-
-               //analytically computer derivative of psi wrt particle's elastic deformation gradient
-               //2 * mu * (Se - I) + lamdba * trace(Se - I) * I
-               Eigen::Matrix3f new_def_e = sum * pt.def_e;
-
-               if (i == 17 && j == 11 && k == 16 && p == 23) {
-                  int debug = 1;
+               for(int kk=max(0,pt.k-2); kk<=min(pt.k+3,nk-1); ++kk) for(int jj=max(0,pt.j-2); jj<=min(pt.j+3,nj-1); ++jj) for(int ii=max(0,pt.i-2); ii<=min(pt.i+3,ni-1); ++ii) {
+                  Eigen::Vector3f vel;
+                  vel(0) = u(ii,jj,kk);
+                  vel(1) = v(ii,jj,kk);
+                  vel(2) = w(ii,jj,kk);
+                  Eigen::Vector3f wg = get_weight_gradient(dx, ii, jj, kk, pt.pos);
+                  //if (i == 18 && j == 11 && k == 13) {
+                  //   cout << "particle index = " << pt.i << " " << pt.j << " " << pt.k << endl;
+                  //   cout << "cell index = " << ii << " " << jj << " " << kk << endl;
+                  //   cout << "vel = " << vel << endl;
+                  //   cout << "wg = " << endl;
+                  //   cout << wg;
+                  //   cout << endl;
+                  //}
+                  sum += 0.5 * dt * vel * wg.transpose();
+                  //if (i == 18 && j == 11 && k == 13) {
+                  //   cout << "sum = " << endl;
+                  //   cout << sum << endl;
+                  //}
                }
 
-               //Eigen::Matrix3f new_def_e = pt.def_e;
+               //analytically computer derivative of psi wrt particle's elastic deformation gradient
+               Eigen::Matrix3f new_def_e = sum * pt.def_e;
+
+               //if (i == 17 && j == 11 && k == 16 && p == 23) {
+               //   int debug = 1;
+               //}
 
                //SVD and polar decomposition of new_def_e
                Eigen::JacobiSVD<Eigen::Matrix3f> svd(new_def_e, Eigen::ComputeFullU | Eigen::ComputeFullV);
@@ -411,7 +567,7 @@ void FluidSim::compute_grid_forces(float dt) {
 
                Eigen::Matrix3f temp = matrixS - Eigen::Matrix3f::Identity();   //so we don't have to recompute it
                //Eigen::Matrix3f gradient = 2 * mu_def_p * temp + lambda_def_p * temp.trace() * Eigen::Matrix3f::Identity();
-               Eigen::Matrix3f gradient = 2 * mu_def_p * (new_def_e - matrixR);// + lambda_def_p * (deter_e - 1) * deter_e * new_def_e.transpose().inverse();
+               Eigen::Matrix3f gradient = 2 * mu_def_p * (new_def_e - matrixR) + lambda_def_p * (deter_e - 1) * deter_e * new_def_e.transpose().inverse();
 
                //for new_def_e
                gradient = sum * gradient;
@@ -424,7 +580,7 @@ void FluidSim::compute_grid_forces(float dt) {
                Eigen::Matrix3f temp1 = gradient * trans;
                Eigen::Vector3f grad = get_weight_gradient(dx, i, j, k, pt.pos);
                Eigen::Vector3f f = temp1 * grad;
-               int debug = 1;
+               //int debug = 1;
                //if (i == 16 && j == 13 && k == 15) {
                //   if (abs(force(1) - oldForce(1)) < 20) {
                //      cout << "vel(16, 13, 15)" << endl;
@@ -439,13 +595,13 @@ void FluidSim::compute_grid_forces(float dt) {
          fx(i, j, k) = force(0);
          fy(i, j, k) = force(1);
          fz(i, j, k) = force(2);
-         if (i == 16 && j == 13 && k == 15) {
-            cout << "grid (" << i << ", " << j << ", " << k << ")" << endl;
-            cout << "vel = (" << u(i, j, k) << ", " << v(i, j, k) << ", " << w(i, j, k) << ")" << endl;
-            cout << "force = (" << fx(i, j, k) << ", " << fy(i, j, k) << ", " << fz(i, j, k) << ")" << endl;
-         }
+         //if (i == 16 && j == 13 && k == 15) {
+         //   cout << "grid (" << i << ", " << j << ", " << k << ")" << endl;
+         //   cout << "vel = (" << u(i, j, k) << ", " << v(i, j, k) << ", " << w(i, j, k) << ")" << endl;
+         //   cout << "force = (" << fx(i, j, k) << ", " << fy(i, j, k) << ", " << fz(i, j, k) << ")" << endl;
+         //}
       }
-      printf(" Finished computing forces for layer %d\n", k);
+      //printf(" Finished computing forces for layer %d\n", k);
    }
    printf("Finished computing grid forces\n");
 }
@@ -488,11 +644,10 @@ void FluidSim::apply_external_force() {
 }
 
 //Update temporary velocities
-//TODO: use semi-implicit integration
 void FluidSim::update_temp_velocities(float dt) {
-   cout << "vel(16, 13, 15) = (" << u(16,13,15) << ", " << v(16,13,15) << ", " << w(16,13,15) << ")" << endl;
-   cout << "f(16, 13, 15) = (" << fx(16,13,15) << ", " << fy(16,13,15) << ", " << fz(16,13,15) << ")" << endl;
-   cout << "mass(16, 13, 15) = " << mass(16, 13, 15) << endl;
+   //cout << "vel(16, 13, 15) = (" << u(16,13,15) << ", " << v(16,13,15) << ", " << w(16,13,15) << ")" << endl;
+   //cout << "f(16, 13, 15) = (" << fx(16,13,15) << ", " << fy(16,13,15) << ", " << fz(16,13,15) << ")" << endl;
+   //cout << "mass(16, 13, 15) = " << mass(16, 13, 15) << endl;
    #pragma omp parallel for
    for(int k = 0; k < nk; ++k) for(int j = 0; j < nj; ++j) for(int i = 0; i < ni; ++i) {
       if (mass(i, j, k) > EPSILON) {
@@ -501,8 +656,8 @@ void FluidSim::update_temp_velocities(float dt) {
          temp_w(i, j, k) = w(i, j, k) + fz(i, j, k) * dt / mass(i, j, k);
       }
    }
-   cout << "new_vel(16, 13, 15) = (" << temp_u(16,13,15) << ", " << temp_v(16,13,15) << ", " << temp_w(16,13,15) << ")" << endl;
-   printf("Finished updating temporary velocities\n");
+   //cout << "new_vel(16, 13, 15) = (" << temp_u(16,13,15) << ", " << temp_v(16,13,15) << ", " << temp_w(16,13,15) << ")" << endl;
+   //printf("Finished updating temporary velocities\n");
 }
 
 //Apply collision to temporary grid velocities
@@ -531,12 +686,154 @@ void FluidSim::apply_collision_to_grid() {
 }
 
 //Update grid velocities using explicit integration
-//TODO: change to semi-implicit integration
-void FluidSim::update_grid_velocities() {
-   u = temp_u;
-   v = temp_v;
-   w = temp_w;
+//CRAZY SEMI-IMPLICIT UPDATE
+void FluidSim::update_grid_velocities(float dt) {
+   //Construct V* and V^n+1 vector
+   V_s.assign(V_s.size(), 0);
+   V_new.assign(V_new.size(), 0);
+   for(int k = 0; k < nk; ++k) for(int j = 0; j < nj; ++j) for(int i = 0; i < ni; ++i) {
+      int index = k * ni * nj + j * ni + i;
+      V_s[3*index] = temp_u(i, j, k);
+      V_s[3*index+1] = temp_v(i, j, k);
+      V_s[3*index+2] = temp_w(i, j, k);
+      K.set_element(3*index, 3*index, mass(i, j, k));
+      K.set_element(3*index+1, 3*index+1, mass(i, j, k));
+      K.set_element(3*index+2, 3*index+2, mass(i, j, k));
+   }
+
+   //Construct the crazy 3n*3n matrix
+   vector<Particle> Ps;
+   vector<Eigen::MatrixXf> Ds;
+   vector<Eigen::Vector3f> FWs;
+
+   for(int k = 0; k < nk; ++k) for(int j = 0; j < nj; ++j) for(int i = 0; i < ni; ++i) {
+      int index = k * ni * nj + j * ni + i;
+
+      Ps.clear();
+      Ds.clear();
+      FWs.clear();
+      
+      for (int k1=max(0,k-2); k1<=min(k+2,nk-1); ++k1) for (int j1=max(0,j-2); j1<=min(j+2,nj-1); ++j1) for (int i1=max(0,i-2); i1<=min(i+2,ni-1); ++i1) {
+         int start, end;
+         find_particle_indices(i1, j1, k1, start, end);
+         
+         for (int p=start; p<end; ++p) {
+            Particle pt = particles[p];
+            float deter_p = pt.def_p.determinant();
+            float exponent = exp(harden * (1 - deter_p));
+            float mu_p = mu * exponent;
+            Eigen::MatrixXf D = get_second_derivative(pt.def_e, mu_p);
+            Eigen::Vector3f FW = pt.def_e.transpose() * get_weight_gradient(dx, i, j, k, pt.pos);
+            
+            Ps.push_back(pt);
+            Ds.push_back(D);
+            FWs.push_back(FW);
+         }
+      }
+
+      for (int kk=max(0,k-4); kk<=min(k+5,nk-1); ++kk) for (int jj=max(0,j-4); jj<=min(j+5,nj-1); ++jj) for (int ii=max(0,i-4); ii<=min(i+5,ni-1); ++ii) {
+         int index1 = kk * ni * nj + jj * ni + ii;
+         Eigen::Matrix3f Kij = Eigen::Matrix3f::Zero();
+
+         for (int p=0; p<Ps.size(); ++p) {
+            Particle pt = Ps[p];
+            Eigen::MatrixXf D = Ds[p];
+            Eigen::Vector3f FW = FWs[p];
+            Eigen::Vector3f WF = (get_weight_gradient(dx, ii, jj, kk, pt.pos).transpose() * pt.def_e).transpose();
+
+            for (int r=0; r<3; ++r) {
+               for (int s=0; s<3; ++s) {
+                  for (int t=0; t<3; ++t) {
+                     for (int l=0; l<3; ++l) {
+                        Kij(r, s) += pt.init_vol * D(3*s+r, 3*l+t) * WF(l) * FW(t);
+                     }
+                  }
+               }
+            }
+         }
+
+         for (int r=0; r<3; ++r) {
+            for (int s=0; s<3; ++s) {
+               K.add_to_element(index*3+r, index1*3+s, beta * dt * Kij(r, s));
+            }
+         }
+      }
+   }
+
+   printf("Finished constructing semi-implicit update equations\n");
+
+   //Solve for V^n+1 using Conjugate Gradient solver
+   double tolerance;
+   int iterations;
+   solver.set_solver_parameters(1e-18, 1000);
+   bool success = solver.solve(K, V_s, V_new, tolerance, iterations);
+   printf("Solver took %d iterations and had residual %e\n", iterations, tolerance);
+   if(!success) {
+      printf("WARNING: Pressure solve failed!************************************************\n");
+   }
+
+   //Output data in V^n+1 back to temp_u, temp_v, temp_w
+   for(int k = 0; k < nk; ++k) for(int j = 0; j < nj; ++j) for(int i = 0; i < ni; ++i) {
+      int index = k * ni * nj + j * ni + i;
+      temp_u(i, j, k) = V_new[3*index];
+      temp_v(i, j, k) = V_new[3*index+1];
+      temp_w(i, j, k) = V_new[3*index+2];
+   }
+
    printf("Finished updating grid velocities\n");
+}
+
+//Get second order derivative of psi wrt Fe
+Eigen::MatrixXf FluidSim::get_second_derivative(Eigen::Matrix3f F, float mu_p) {
+   //Compute SVD
+   Eigen::JacobiSVD<Eigen::Matrix3f> svd(F, Eigen::ComputeFullU | Eigen::ComputeFullV);
+   Eigen::Matrix3f U = svd.matrixU();
+   Eigen::Matrix3f V = svd.matrixV();
+   Eigen::Vector3f S = svd.singularValues();
+
+   Eigen::MatrixXf deriv(9, 9);
+   for (int i=0; i<3; ++i) {
+      for (int j=0; j<3; ++j) {
+         //deriv[i][j] = 2 * mu_p * (dFji + dR/dFji)
+         Eigen::Matrix3f dF = Eigen::Matrix3f::Zero();
+         //Compute dF/dF
+         dF(j, i) = 1;
+
+         //Compute dR/dFji = dU/dF * V^T + U * dV^T/dF
+         //Compute dU/dF and dV^T/dF first
+         Eigen::Matrix3f L = U.transpose() * dF * V;
+         Eigen::MatrixXf C(6, 6);   //coefficients for solving for U^tilde and V^tilde
+         C.setZero();
+         C(0, 0) = -S(0); C(0, 3) = -S(1);
+         C(1, 1) = -S(0); C(1, 4) = -S(2);
+         C(2, 0) =  S(1); C(2, 3) =  S(0);
+         C(3, 2) = -S(1); C(3, 5) = -S(2);
+         C(4, 1) =  S(2); C(4, 4) =  S(0);
+         C(5, 2) =  S(2); C(5, 5) =  S(1);
+         Eigen::VectorXf D(6);   //constants for solving for U^tilde and V^tilde
+         D(0) = L(1, 0); D(1) = L(2, 0); D(2) = L(0, 1);
+         D(3) = L(2, 1); D(4) = L(0, 2); D(5) = L(1, 2);
+         Eigen::VectorXf UV = C.inverse() * D;   //(u1, u2, u3, v1, v2, v3)
+
+         Eigen::Matrix3f Ut = Eigen::Matrix3f::Zero();   //U^tilde
+         Ut(0, 1) =  UV(0); Ut(0, 2) =  UV(1); Ut(1, 2) =  UV(2);
+         Ut(1, 0) = -UV(0); Ut(2, 0) = -UV(1); Ut(2, 1) = -UV(2);
+         Eigen::Matrix3f Vt = Eigen::Matrix3f::Zero();   //V^tilde
+         Vt(0, 1) =  UV(3); Vt(0, 2) =  UV(4); Vt(1, 2) =  UV(5);
+         Vt(1, 0) = -UV(3); Vt(2, 0) = -UV(4); Vt(2, 1) = -UV(5);
+
+         Eigen::Matrix3f dU = U.transpose().inverse() * Ut;
+         Eigen::Matrix3f dVT = Vt * V.inverse();
+         Eigen::Matrix3f dR = dU * V.transpose() + U * dVT;
+         Eigen::Matrix3f deriv_ij = 2 * mu_p * (dF + dR);
+
+         for (int i1=0; i1<3; ++i) {
+            for (int j1=0; j1<3; ++j) {
+               deriv(i*3+i1, j*3+j1) = deriv_ij(i1, j1);
+            }
+         }
+      }
+   }
 }
 
 //Update elastic and plastic deform gradient of particles
@@ -763,9 +1060,6 @@ void FluidSim::advance(float dt, bool first_step) {
    //   first_step = false;
    //}
 
-   if (!first_step) {
-      rasterize_particle_data();
-   }
    compute_grid_forces(dt);
    ////temporary
    //fx.set_zero();
@@ -774,13 +1068,15 @@ void FluidSim::advance(float dt, bool first_step) {
    apply_external_force();
    update_temp_velocities(dt);
    apply_collision_to_grid();
+   //update_grid_velocities(dt);
    update_deform_gradient(dt);
    update_particle_velocities();
    apply_collision_to_particles(dt);
-   //update_grid_velocities();
    update_particle_positions(dt);
    sort_particles();
    //stablize();
+   rasterize_particle_data();
+   compute_phi();
 }
 
 

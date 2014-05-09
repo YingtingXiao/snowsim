@@ -1101,7 +1101,7 @@ void (*userMouseFunc)(int button, int state, int x, int y)=0;
 void (*userDragFunc)(int x, int y)=0;
 Camera *camera=0;
 WidgetList root(0);
-int winwidth=720, winheight=480;
+int winwidth=1080, winheight=720;
 
 //=================================================================================
 

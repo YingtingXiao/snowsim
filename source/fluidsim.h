@@ -2,11 +2,12 @@
 #define FLUIDSIM_H
 
 #include "array3.h"
-#include "pcgsolver/sparse_matrix.h"
-#include "pcgsolver/pcg_solver.h"
 #include "particle.h"
 
 #include <vector>
+
+#include "pcgsolver/sparse_matrix.h"
+#include "pcgsolver/pcg_solver.h"
 
 using namespace std;
 
@@ -44,13 +45,17 @@ public:
    //Grid mass and rasterized from particles
    Array3f mass;
 
-	//Solver data
-	PCGSolver<double> solver;
-	SparseMatrixd matrix;
-	std::vector<double> rhs;
-	std::vector<double> pressure;
-
 	Vec3f get_velocity(const Vec3f& position);
+
+   //For exporting mesh
+   void compute_phi();
+   void marching_cube(vector<Vec3f>& position, vector<Vec3f>& normal, vector<unsigned int>& indices);
+
+   //For semi-implicit update
+   vector<double> V_s;
+   vector<double> V_new;
+   SparseMatrixd K;
+   PCGSolver<double> solver;
 
 private:
 	void initialize_phi(string filename, Array3f& phi, bool solid);
@@ -64,7 +69,8 @@ private:
    void apply_external_force();
    float compute_psi(Eigen::Matrix3f def_e, Eigen::Matrix3f def_p, Eigen::Matrix3f sum);
    void update_temp_velocities(float dt);
-   void update_grid_velocities();
+   void update_grid_velocities(float dt);
+   Eigen::MatrixXf get_second_derivative(Eigen::Matrix3f F, float mu_p);
    void apply_collision_to_grid();
    void update_deform_gradient(float dt);
    void update_particle_velocities();

@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <vector>
-#include "util.h"
+#include "../util.h"
 
 //============================================================================
 // Dynamic compressed sparse row matrix.

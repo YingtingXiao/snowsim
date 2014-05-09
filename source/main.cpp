@@ -19,7 +19,7 @@ using namespace std;
 
 //Simulation stuff
 int grid_resolution = 0;
-float timestep = 0.01f;
+float timestep = 0.001f;
 int frame = 0;
 float grid_width = 1;
 FluidSim sim;
@@ -49,6 +49,8 @@ float liquid_phi(const Vec3f& position) {
 
 void simulate_frame(int frame);
 void save_image(int frame);
+void export_grid(int frame);
+void export_mesh(int frame);
 void export_particles(string path, int frame, const std::vector<Particle>& particles);
 
 //Display fluid
@@ -63,47 +65,47 @@ void set_view(Gluvi::Target3D &cam)
 void set_lights_and_material(int object)
 {
    //---Draw translucent spheres---//
-   ////Enable blending
-   //glEnable (GL_BLEND);
-   //glEnable(GL_ALPHA_TEST);
-   //glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   //Enable blending
+   glEnable (GL_BLEND);
+   glEnable(GL_ALPHA_TEST);
+   glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-   //glEnable(GL_DEPTH_TEST);
-   //glDepthFunc(GL_LEQUAL);
-   //glDisable(GL_LIGHTING);
-   //glShadeModel(GL_FLAT);
+   glEnable(GL_DEPTH_TEST);
+   glDepthFunc(GL_LEQUAL);
+   glDisable(GL_LIGHTING);
+   glShadeModel(GL_FLAT);
 
-   //glColor4f(.4, .4, .7, .3);
+   glColor4f(.8, .8, .85, .3);
 
-   //---Draw blinn spheres---//
-   glEnable(GL_LIGHTING);
-   GLfloat global_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};
-   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, global_ambient);
-   glShadeModel(GL_SMOOTH);
+   ////---Draw blinn spheres---//
+   //glEnable(GL_LIGHTING);
+   //GLfloat global_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};
+   //glLightModelfv(GL_LIGHT_MODEL_AMBIENT, global_ambient);
+   //glShadeModel(GL_SMOOTH);
 
-   //Light #1
-   GLfloat color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-   GLfloat position[3] = {1.0f, 1.0f, 1.0f};
-   glLightfv(GL_LIGHT0, GL_SPECULAR, color);
-   glLightfv(GL_LIGHT0, GL_DIFFUSE, color);
-   glLightfv(GL_LIGHT0, GL_POSITION, position);
+   ////Light #1
+   //GLfloat color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+   //GLfloat position[3] = {1.0f, 1.0f, 1.0f};
+   //glLightfv(GL_LIGHT0, GL_SPECULAR, color);
+   //glLightfv(GL_LIGHT0, GL_DIFFUSE, color);
+   //glLightfv(GL_LIGHT0, GL_POSITION, position);
 
-   //Light #2
-   GLfloat color2[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-   GLfloat position2[3] = {-1.0f, -1.0f, 1.0f};
-   glLightfv(GL_LIGHT1, GL_SPECULAR, color2);
-   glLightfv(GL_LIGHT1, GL_DIFFUSE, color2);
-   glLightfv(GL_LIGHT1, GL_POSITION, position2);
+   ////Light #2
+   //GLfloat color2[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+   //GLfloat position2[3] = {-1.0f, -1.0f, 1.0f};
+   //glLightfv(GL_LIGHT1, GL_SPECULAR, color2);
+   //glLightfv(GL_LIGHT1, GL_DIFFUSE, color2);
+   //glLightfv(GL_LIGHT1, GL_POSITION, position2);
 
-   GLfloat obj_color[4] = {.2, .3, .7};
-   glMaterialfv (GL_FRONT, GL_AMBIENT, obj_color);
-   glMaterialfv (GL_FRONT, GL_DIFFUSE, obj_color);
+   //GLfloat obj_color[4] = {.2, .3, .7};
+   //glMaterialfv (GL_FRONT, GL_AMBIENT, obj_color);
+   //glMaterialfv (GL_FRONT, GL_DIFFUSE, obj_color);
 
-   GLfloat specular[4] = {.4, .2, .8};
-   glMaterialf (GL_FRONT, GL_SHININESS, 32);
-   glMaterialfv (GL_FRONT, GL_SPECULAR, specular);
-   glEnable(GL_LIGHT0);
-   glEnable(GL_LIGHT1);
+   //GLfloat specular[4] = {.4, .2, .8};
+   //glMaterialf (GL_FRONT, GL_SHININESS, 32);
+   //glMaterialfv (GL_FRONT, GL_SPECULAR, specular);
+   //glEnable(GL_LIGHT0);
+   //glEnable(GL_LIGHT1);
 }
 
 void timer(int value)
@@ -306,16 +308,20 @@ void simulate_frame(int frame) {
 
    //printf("Exporting particle data\n");
    //export_particles(outpath, frame, sim.particles, sim.particle_radius);
+   
+   //if (frame % 10 == 1) {
+      int f = frame;
+      save_image(f);
+      //export_grid(f);
+      export_mesh(f);
+   //}
 
-   //Save an image every 10 frames
-   if (frame % 10 == 1) {
-      save_image(frame/10);
-   }
+   //save_image(frame);
 }
 
 void save_image(int frame) {
-   int recordWidth = 720;
-   int recordHeight = 480;
+   int recordWidth = 1080;
+   int recordHeight = 720;
    unsigned char* bitmapData = new unsigned char[3 * recordWidth * recordHeight];
 
    for (int i=0; i<recordHeight; i++) 
@@ -325,11 +331,57 @@ void save_image(int frame) {
    }
 
    char anim_filename[2048];
-   sprintf_s(anim_filename, 2048, "output/fluid_%03d.png", frame); 
+   sprintf_s(anim_filename, 2048, "../output/image/snow_%04d.png", frame); 
 
    stbi_write_png(anim_filename, recordWidth, recordHeight, 3, bitmapData, recordWidth * 3);
 
    delete [] bitmapData;
+
+   cout << "Exported image to " << anim_filename << endl;
+}
+
+void export_grid(int frame) {
+   //Write the output
+   char filepath[2048];
+   sprintf_s(filepath, 2048, "../output/data/data_%04d.txt", frame);
+
+   ofstream outfile(filepath);
+
+   //Write grid resolution
+   outfile << grid_resolution << endl;
+   outfile << endl;
+
+   for(int i=0; i<sim.mass.a.size(); ++i) {
+      outfile << sim.mass.a[i] << endl;
+   }
+
+   cout << "Exported grid data to " << filepath << endl;
+}
+
+void export_mesh(int frame) {
+   std::vector<Vec3f> position, normal;
+	std::vector<unsigned int> indices;
+   sim.marching_cube(position, normal, indices);
+   std::cout<<"mesh point size: "<<position.size()<<" indices size: "<<indices.size()<<endl;
+   
+   char filepath[2048];
+   sprintf_s(filepath, 2048, "../output/mesh/mesh_%04d.obj", frame);
+   std::ofstream outfile(filepath);
+   outfile<< "g vertex"<<endl;
+   for (int i = 0; i<position.size(); i++) {
+	    outfile<< "v " <<position[i][0]<<" "<<position[i][1]<<" "<<position[i][2]<<endl;
+   }
+   
+   outfile<<"g normal"<<endl;
+   for (int j = 0;j<normal.size();j++)
+	   outfile<< "vn "<<normal[j][0]<<" "<<normal[j][1]<<" "<<normal[j][2]<<endl;
+   outfile<<"g faces"<<endl;
+   int size = indices.size();
+   for(int k = 0; k<size;k+=3)
+		outfile<<"f " <<indices[k]+1<<" "<<indices[k+1]+1<<" "<<indices[k+2]+1<<endl;
+   outfile.close();
+
+   cout << "Exported mesh to " << filepath << endl;
 }
 
 void export_particles(string path, int frame, const std::vector<Particle>& particles) {

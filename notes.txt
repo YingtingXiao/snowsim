@@ -61,7 +61,7 @@ in the Einstein notation:
 any subscript that's duplicated is summed
 the ordering doesn't matter
 
-one way to do corrotation:
+one way to do corotation:
 assume rotation is the same in every timestep
 rotate F first, after getting forces, rotate it back
 
